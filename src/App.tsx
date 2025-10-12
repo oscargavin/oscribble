@@ -373,7 +373,13 @@ function App() {
                 | "performance"
                 | "feature",
               blocked_by: task.blocked_by,
-              notes: task.notes.join(", "),
+              depends_on: task.depends_on,
+              related_to: task.related_to,
+              notes: task.notes, // Now passed as array directly
+              deadline: task.deadline,
+              effort_estimate: task.effort_estimate,
+              tags: task.tags,
+              formatted: true, // Task has been analyzed by Claude
             },
           });
         }
@@ -502,7 +508,7 @@ function App() {
           />
         )}
         {view === "tasks" && (
-          <TaskTree tasks={tasks} onUpdate={handleTaskUpdate} />
+          <TaskTree tasks={tasks} onUpdate={handleTaskUpdate} projectRoot={projectRoot} />
         )}
       </div>
 

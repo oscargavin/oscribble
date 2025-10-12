@@ -24,6 +24,10 @@ export interface ElectronAPI {
     rawText: string,
     contextStr: string
   ) => Promise<{ success: boolean; data?: any; error?: string }>;
+  formatSingleTask: (
+    taskText: string,
+    projectRoot: string
+  ) => Promise<{ success: boolean; data?: any; error?: string }>;
   getProjectFiles: (
     projectRoot: string
   ) => Promise<{ success: boolean; files: string[]; error?: string }>;

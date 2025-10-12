@@ -13,11 +13,19 @@ A brutalist task manager that transforms raw bullet-point notes into AI-analyzed
 ## Features
 
 - **Raw-to-Structured Conversion**: Write quick notes in plain text, let Claude organize them into prioritized tasks
+- **Single-Task Formatting**: Format individual unformatted tasks with Claude (CMD+F or wrench button)
 - **Context-Aware**: Mention files with `@filepath` syntax to include code context in task analysis
-- **Keyboard-First Navigation**: Arrow keys, space bar, and shortcuts for rapid task management
+- **Hierarchical Tasks**: Support for subtasks with expand/collapse functionality (arrow keys)
+- **Task Relationships**: Visual editor for managing task dependencies and relationships (press R)
+- **Inline Task Creation**: Create new tasks directly in the list (press N)
+- **Metadata Editing**: Edit deadlines, effort estimates, and tags inline (press M)
+- **Keyboard-First Navigation**: Arrow keys, space bar, and extensive shortcuts for rapid task management
+- **Filter Modes**: Filter by all/unchecked/critical/blocked tasks (press 1-4)
 - **Priority Tracking**: Critical/Performance/Feature categorization with visual indicators
 - **Dependency Detection**: Automatically flags blocked tasks and dependencies
 - **Project Management**: Switch between multiple projects with `Cmd+K` quick switcher
+- **Hover Actions**: Format, Edit, Copy, Delete buttons appear on task hover
+- **Loading States**: Visual feedback with animated spinners during API calls
 - **Brutalist Design**: Monochrome terminal aesthetic with orange accents
 
 ## Installation
@@ -70,11 +78,51 @@ npm run make
 
 **Task View:**
 - `↑/↓` - Navigate tasks
+- `←/→` - Collapse/expand subtasks
 - `Space` - Toggle task completion
+- `N` - Create new task
+- `M` - Edit metadata (deadline, estimate, tags)
+- `R` - Edit relationships (dependencies)
 - `Delete` - Remove task
+- `Cmd+F` - Format focused task with Claude
 - `Cmd+C` - Copy focused task
 - `Cmd+Shift+C` - Copy all tasks
 - `Cmd+L` - Clear all tasks
+
+**Filters:**
+- `1` - Show all tasks
+- `2` - Show unchecked only
+- `3` - Show critical only
+- `4` - Show blocked only
+
+### Task Management
+
+**Creating Tasks:**
+- Click "Edit Raw" to add multiple tasks at once, then format
+- Press `N` while viewing tasks to create a single task inline
+- New tasks default to "feature" priority and can be formatted individually
+
+**Formatting Tasks:**
+- **Bulk format**: Add raw tasks in "Edit Raw" view and click Format button
+- **Single format**: Hover over a raw task and click the wrench icon, or press `Cmd+F`
+- Tasks marked `[RAW]` need formatting; formatted tasks show priority badges
+
+**Task Relationships:**
+- Press `R` on any task to open the relationships editor
+- Set dependencies using task numbers (e.g., "1, 3, 5")
+- Tasks automatically show `[DEPENDS]` and `[RELATED]` metadata
+- Blocked tasks are flagged automatically by Claude during formatting
+
+**Subtasks:**
+- Formatted tasks may include subtasks from Claude's analysis
+- Use `←/→` arrow keys to collapse/expand subtasks
+- Subtask count shown in brackets next to parent task
+
+**Hover Actions:**
+- **Wrench icon**: Format this task with Claude (raw tasks only)
+- **Pencil icon**: Edit metadata (deadline, estimate, tags)
+- **Copy icon**: Copy task details to clipboard
+- **Trash icon**: Delete task
 
 ### Context Mentions
 

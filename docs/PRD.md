@@ -95,7 +95,7 @@ interface TaskNode {
   metadata?: {
     priority?: 'critical' | 'performance' | 'feature';
     blocked_by?: string[]; // Array of task IDs
-    notes?: string;        // Claude's insights
+    notes?: string[];      // Claude's insights as structured array
   };
 }
 

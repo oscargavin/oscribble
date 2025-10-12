@@ -280,6 +280,25 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
   }
 });
 
+// Format a single task with Claude
+ipcMain.handle('format-single-task', async (_, taskText: string, projectRoot: string) => {
+  try {
+    if (!claudeService) {
+      throw new Error('Claude service not initialized');
+    }
+
+    // Gather context from any @mentions in the task text
+    const contextResult = await ContextService.gatherContext(taskText, projectRoot);
+    const contextStr = ContextService.formatContextForPrompt(contextResult);
+
+    // Format the task with Claude
+    const response = await claudeService.formatTasks(taskText, contextStr);
+    return { success: true, data: response };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // Get project files for autocomplete
 ipcMain.handle('get-project-files', async (_, projectRoot: string) => {
   try {

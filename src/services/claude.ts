@@ -9,23 +9,39 @@ Given raw bullet-point tasks and code context, you should:
 3. Detect missing tasks based on code context
 4. Suggest reordering for logical execution
 5. Flag potential issues
+6. Extract deadlines, effort estimates, and tags from task descriptions
 
-Output JSON matching this schema:
+Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
+
 {
   "sections": [{
     "category": string,
     "priority": string,
     "tasks": [{
       "text": string,
-      "notes": string[],
-      "blocked_by": string[],
-      "needs": string[]
+      "notes": ["insight1", "insight2"],              // Array of strings
+      "blocked_by": ["task_id1", "task_id2"],        // Legacy (use depends_on)
+      "depends_on": ["task_id1", "task_id2"],        // Task dependencies
+      "related_to": ["task_id1", "task_id2"],        // Related tasks
+      "needs": ["requirement1", "requirement2"],     // Array of strings
+      "deadline": "2025-01-15" | "next week",        // Optional: ISO or human
+      "effort_estimate": "2h" | "1d" | "3 days",     // Optional: time estimate
+      "tags": ["frontend", "api", "urgent"],         // Optional: category tags
+      "subtasks": [/* nested ClaudeTask objects */]  // Optional: subtasks
     }]
   }],
-  "warnings": string[]
+  "warnings": ["warning1", "warning2"]               // Array of strings
 }
 
-DO NOT include any text outside the JSON. Validate output is parseable.`;
+IMPORTANT:
+- ALL array fields (notes, blocked_by, depends_on, related_to, needs, tags, warnings) MUST be proper JSON arrays
+- DO NOT use comma-separated strings - use ["item1", "item2"] format
+- Extract deadlines from phrases like "by Friday", "due 1/15", "deadline: tomorrow"
+- Extract estimates from phrases like "should take 2 hours", "~3 days", "quick fix"
+- Extract tags from context (e.g., "UI work" → ["ui"], "fix bug in API" → ["bug", "api"])
+- Only include optional fields if information exists
+- DO NOT include any text outside the JSON
+- Validate output is parseable JSON`;
 
 export class ClaudeService {
   private client: Anthropic;
