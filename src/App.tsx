@@ -22,6 +22,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showQuickSwitcher, setShowQuickSwitcher] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
 
   // Use the projects hook for centralized project state management
@@ -55,6 +56,11 @@ function App() {
                 initResult.error
               );
             }
+          }
+
+          // Load OpenAI API key if present
+          if (settings?.openai_api_key) {
+            setOpenaiApiKey(settings.openai_api_key);
           }
 
           setIsSetupComplete(true);
@@ -204,6 +210,7 @@ function App() {
         auth_method: "api_key",
         current_project: newProjectName,
         api_key: apiKey,
+        openai_api_key: openaiApiKey || undefined,
       });
 
       // Update project last_accessed time
@@ -516,8 +523,12 @@ function App() {
       {showSettings && (
         <Settings
           currentApiKey={apiKey}
-          onSave={(newApiKey) => {
+          currentOpenAIApiKey={openaiApiKey}
+          onSave={(newApiKey, newOpenaiApiKey) => {
             setApiKey(newApiKey);
+            if (newOpenaiApiKey) {
+              setOpenaiApiKey(newOpenaiApiKey);
+            }
             setShowSettings(false);
           }}
           onClose={() => setShowSettings(false)}

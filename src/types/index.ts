@@ -36,7 +36,8 @@ export interface ProjectSettings {
 export interface AppSettings {
   auth_method: 'api_key' | 'subscription';
   current_project?: string;
-  api_key?: string; // Store API key for persistence
+  api_key?: string; // Anthropic API key
+  openai_api_key?: string; // OpenAI API key
 }
 
 export interface ClaudeFormatResponse {

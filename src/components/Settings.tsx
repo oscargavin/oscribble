@@ -2,16 +2,19 @@ import React, { useState } from 'react';
 
 interface SettingsProps {
   currentApiKey?: string;
-  onSave: (apiKey: string) => void;
+  currentOpenAIApiKey?: string;
+  onSave: (apiKey: string, openaiApiKey?: string) => void;
   onClose: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
   currentApiKey,
+  currentOpenAIApiKey,
   onSave,
   onClose,
 }) => {
   const [apiKey, setApiKey] = useState(currentApiKey || '');
+  const [openaiApiKey, setOpenaiApiKey] = useState(currentOpenAIApiKey || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,14 +30,15 @@ export const Settings: React.FC<SettingsProps> = ({
         throw new Error(result.error || 'Invalid API key');
       }
 
-      // Get current settings and update API key
+      // Get current settings and update API keys
       const settings = await window.electronAPI.getSettings();
       await window.electronAPI.saveSettings({
         ...settings,
         api_key: apiKey,
+        openai_api_key: openaiApiKey.trim() || undefined,
       });
 
-      onSave(apiKey);
+      onSave(apiKey, openaiApiKey);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -83,6 +87,34 @@ export const Settings: React.FC<SettingsProps> = ({
                 className="text-[#FF4D00] hover:opacity-70"
               >
                 console.anthropic.com
+              </a>
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="openaiApiKey"
+              className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+            >
+              OpenAI API Key (Optional)
+            </label>
+            <input
+              id="openaiApiKey"
+              type="password"
+              value={openaiApiKey}
+              onChange={(e) => setOpenaiApiKey(e.target.value)}
+              placeholder="sk-..."
+              className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+            />
+            <p className="text-xs text-[var(--text-dim)] mt-1">
+              required for voice input transcription{' '}
+              <a
+                href="https://platform.openai.com/api-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#FF4D00] hover:opacity-70"
+              >
+                platform.openai.com
               </a>
             </p>
           </div>
