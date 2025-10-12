@@ -18,37 +18,50 @@ All of this works **even when the Oscribble app is closed**.
 
 ## Installation
 
-### 1. Install Dependencies
+### Quick Start (Recommended)
 
-```bash
-cd ~/.config/oscribble-mcp
-pip install -r requirements.txt
-```
+Add the Oscribble MCP server to your Claude Code configuration:
 
-### 2. Configure Claude Code
-
-Add the Oscribble server to your Claude Code MCP configuration:
-
-**Location:** `~/.claude/claude-mcp.json` (or your Claude Code config location)
+**Location:** `~/.claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "oscribble": {
-      "command": "python3",
-      "args": ["/Users/YOUR_USERNAME/.config/oscribble-mcp/server.py"]
+      "command": "npx",
+      "args": ["-y", "@oscargavin/oscribble-mcp"]
     }
   }
 }
 ```
 
-**Important:** Replace `YOUR_USERNAME` with your actual username, or use the full absolute path.
+This will automatically download and run the latest version of the MCP server using npx.
 
-### 3. Restart Claude Code
+### Manual Installation
 
-After updating the configuration, restart Claude Code to load the new MCP server.
+Alternatively, install the package globally:
 
-### 4. Verify Installation
+```bash
+npm install -g @oscargavin/oscribble-mcp
+```
+
+Then configure Claude Code to use the installed binary:
+
+```json
+{
+  "mcpServers": {
+    "oscribble": {
+      "command": "oscribble-mcp"
+    }
+  }
+}
+```
+
+### Restart Claude Code
+
+After updating the configuration, restart Claude Code completely (quit and reopen) to load the new MCP server.
+
+### Verify Installation
 
 In Claude Code, try: `"List my oscribble projects"`
 
@@ -303,15 +316,20 @@ The MCP server **never** modifies:
 ### MCP server not responding
 
 **Debugging steps:**
-1. Check if Python path is correct in config
-2. Try running server manually:
+1. Verify Node.js is installed (version 18+):
    ```bash
-   python3 ~/.config/oscribble-mcp/server.py
+   node --version
    ```
-3. Check Claude Code logs for MCP errors
-4. Verify `mcp` package is installed:
+2. Check Claude Code logs for MCP errors:
+   - macOS: `~/Library/Logs/Claude/mcp.log`
+   - Windows: `%APPDATA%\Claude\logs\mcp.log`
+3. Try running the package manually:
    ```bash
-   pip list | grep mcp
+   npx -y @oscargavin/oscribble-mcp
+   ```
+4. Verify the package is accessible:
+   ```bash
+   npm view @oscargavin/oscribble-mcp
    ```
 
 ---
@@ -342,11 +360,12 @@ MCP provides several advantages over other integration approaches:
 
 ### Design Decisions
 
-**Python over TypeScript:**
-- Faster to implement (~150 lines of Python vs ~300+ lines of TS)
-- MCP Python SDK is mature and well-documented
-- No build step required
-- Easy to install (`pip install mcp`)
+**TypeScript Implementation:**
+- Native npm/npx distribution for one-line installation
+- Matches Oscribble's TypeScript codebase for consistency
+- Type-safe with shared type definitions
+- Easy updates via npm registry
+- No Python runtime dependency required
 
 **Read-heavy, Write-light:**
 - Most operations are reads (list projects, list tasks, get details)
@@ -374,6 +393,8 @@ These can be added incrementally as the integration is used and feedback is gath
 ## Related Documentation
 
 - [Oscribble Architecture](../CLAUDE.md) - Main project documentation
+- [@oscargavin/oscribble-mcp on npm](https://www.npmjs.com/package/@oscargavin/oscribble-mcp) - MCP server package
+- [oscribble-mcp on GitHub](https://github.com/oscargavin/oscribble-mcp) - MCP server source code
 - [MCP Protocol Specification](https://spec.modelcontextprotocol.io/) - Official MCP docs
 - [Claude Code MCP Guide](https://docs.claude.com/claude-code/mcp) - Integration guide
 

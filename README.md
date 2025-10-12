@@ -156,7 +156,34 @@ oscribble/
 
 ## MCP Integration
 
-Oscribble provides a Model Context Protocol server for Claude Code integration. See `docs/mcp-integration.md`.
+Interact with your Oscribble tasks through Claude Code using the MCP server:
+
+```bash
+# Install via npx (one-line setup)
+# Add to ~/.claude/claude_desktop_config.json:
+{
+  "mcpServers": {
+    "oscribble": {
+      "command": "npx",
+      "args": ["-y", "@oscargavin/oscribble-mcp"]
+    }
+  }
+}
+```
+
+Then ask Claude Code:
+- "Show me unchecked tasks in oscribble"
+- "Complete task abc-123"
+- "Add a new task to fix the login bug"
+
+**Features:**
+- List projects and tasks with filtering
+- Complete/uncomplete tasks
+- View task metadata (priority, blockers, notes)
+- Add new tasks from Claude Code
+- Works even when the Oscribble app is closed
+
+See [`docs/mcp-integration.md`](docs/mcp-integration.md) for full documentation, or check out the [MCP server repository](https://github.com/oscargavin/oscribble-mcp).
 
 ## Contributing
 
