@@ -228,6 +228,37 @@ export const RawInput: React.FC<RawInputProps> = ({
     }
   };
 
+  // Keyboard shortcut for voice recording (CMD+SHIFT+V or CTRL+SHIFT+V)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // CMD+SHIFT+V or CTRL+SHIFT+V to start recording
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+        e.preventDefault();
+        if (!isRecording && !formatting && !isProcessing) {
+          handleVoiceStart();
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Release CMD+SHIFT+V to stop recording
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+        e.preventDefault();
+        if (isRecording) {
+          handleVoiceStop();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isRecording, formatting, isProcessing]);
+
   const handleVoiceStart = async () => {
     // Check if OpenAI is configured
     const settings = await window.electronAPI.getSettings();
@@ -324,7 +355,7 @@ export const RawInput: React.FC<RawInputProps> = ({
                 ? 'bg-red-600 text-white border-red-600 animate-pulse'
                 : 'border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000]'
             }`}
-            title="Hold to record voice input"
+            title="Hold to record voice input (Cmd+Shift+V)"
           >
             {isProcessing ? 'PROCESSING...' : isRecording ? '🔴 RECORDING' : '🎤 VOICE'}
           </button>
