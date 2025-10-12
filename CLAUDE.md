@@ -47,14 +47,31 @@ Three core services handle business logic in the main process:
    - Response includes sections (CRITICAL/PERFORMANCE/FEATURES), task dependencies, and warnings
    - Supports streaming (not yet implemented in UI)
 
+4. **OpenAIService** (`src/services/openai.ts`):
+   - Transcribes audio to text using OpenAI Whisper (model: `gpt-4o-mini-transcribe`)
+   - Converts WebM audio blobs from MediaRecorder to text
+   - Used for voice input feature
+   - Requires separate OpenAI API key
+
 ### Data Flow
 
+**Text Input Flow:**
 1. User types raw notes in `RawInput` component with `@file/path` mentions
 2. On format: `gather-context` IPC → ContextService loads mentioned files
 3. `format-with-claude` IPC → ClaudeService sends to API with context
 4. Claude returns structured JSON (sections/tasks/priorities/blockers)
 5. App converts to `TaskNode` tree, appends to existing tasks (diff-based to avoid re-formatting)
 6. Tasks saved to `~/.project-stickies/{project}/notes.json`
+
+**Voice Input Flow:**
+1. User holds microphone button or presses `CMD+SHIFT+V` to start recording
+2. Browser MediaRecorder captures audio as WebM blob
+3. On release: `transcribe-audio` IPC → OpenAIService transcribes audio to text
+4. Transcript checked for `@mentions` → ContextService loads mentioned files
+5. `format-with-claude` IPC (with `isVoiceInput=true`) → ClaudeService formats with voice-aware prompting
+6. Claude receives voice flag, applies lenient parsing for conversational speech
+7. Tasks appear directly in list (voice input skips diff logic, formats entire transcript)
+8. Tasks saved to `~/.project-stickies/{project}/notes.json`
 
 ### Key Types
 
@@ -103,12 +120,49 @@ All IPC handlers are in `src/index.ts`. The preload script exposes a typed API v
 - File system operations never exposed to renderer directly
 - Context isolation enabled, node integration disabled
 
+### Voice Input
+
+Hold the microphone button (or `CMD+SHIFT+V`) to record task dictation:
+
+**Audio Processing Pipeline:**
+- Audio captured via browser MediaRecorder API (WebM format)
+- OpenAI Whisper transcribes to text (`gpt-4o-mini-transcribe` model)
+- Transcript sent to Claude with voice-aware prompting
+- Tasks appear directly in task list
+
+**Hold-to-Record Behavior:**
+- Press and hold microphone button or `CMD+SHIFT+V` to start recording
+- Red pulsing indicator shows recording is active
+- Release to stop recording and begin transcription
+- Processing indicator displays during transcription/formatting
+
+**Voice-Aware Formatting:**
+- Claude receives `isVoiceInput=true` flag with transcript
+- Applies lenient parsing for conversational speech patterns
+- Ignores filler words ("um", "uh", "like", "you know")
+- Extracts discrete tasks from run-on sentences
+- Converts natural language to concise task descriptions
+- Example: "So um I need to like fix the login bug and then uh also we should add the dark mode"
+  becomes two tasks: "Fix login bug" and "Add dark mode feature"
+
+**Requirements:**
+- Both Anthropic API key (Claude formatting) and OpenAI API key (transcription) required
+- API keys configured in Settings panel
+- Microphone permission required from browser
+- Voice input available only in raw input view
+
+**Technical Details:**
+- Voice transcripts skip diff logic (always format full transcript)
+- `@mentions` in voice transcription are supported (context gathering works)
+- Uses `useVoiceRecording` hook (`src/hooks/useVoiceRecording.ts`)
+- IPC handlers: `init-openai`, `transcribe-audio`
+
 ### Storage Location
 
 All data stored in `~/.project-stickies/`:
 ```
 ~/.project-stickies/
-├── settings.json         # App-wide settings (current_project, api_key)
+├── settings.json         # App-wide settings (current_project, api_key, openai_api_key)
 ├── projects.json         # Project registry
 └── {project-name}/
     ├── notes.json        # Structured tasks

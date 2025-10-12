@@ -13,6 +13,7 @@ A brutalist task manager that transforms raw bullet-point notes into AI-analyzed
 ## Features
 
 - **Raw-to-Structured Conversion**: Write quick notes in plain text, let Claude organize them into prioritized tasks
+- **Voice Input**: Hold-to-record dictation with OpenAI transcription and voice-aware Claude formatting (CMD+SHIFT+V)
 - **Single-Task Formatting**: Format individual unformatted tasks with Claude (CMD+F or wrench button)
 - **Context-Aware**: Mention files with `@filepath` syntax to include code context in task analysis
 - **Hierarchical Tasks**: Support for subtasks with expand/collapse functionality (arrow keys)
@@ -75,6 +76,9 @@ npm run make
 - `Cmd+K` - Quick switcher
 - `Cmd+N` - Open project in new window
 - `Cmd+W` - Close window
+
+**Raw Input View:**
+- `Cmd+Shift+V` - Hold to record voice input (requires OpenAI API key)
 
 **Task View:**
 - `↑/↓` - Navigate tasks
@@ -163,11 +167,15 @@ Oscribble follows Electron's multi-process architecture:
 
 ## Configuration
 
-### API Key
+### API Keys
 
 Stored locally in `~/.project-stickies/settings.json`. Never committed or shared.
 
-Get your key from [console.anthropic.com](https://console.anthropic.com/).
+**Required:**
+- **Anthropic API Key**: For Claude-powered task formatting. Get from [console.anthropic.com](https://console.anthropic.com/)
+- **OpenAI API Key** (optional): For voice input transcription. Get from [platform.openai.com](https://platform.openai.com/api-keys)
+
+Voice input requires both API keys. Text-based task formatting only requires the Anthropic key.
 
 ### Claude Model
 
