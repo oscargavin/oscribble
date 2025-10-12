@@ -11,6 +11,14 @@ Given raw bullet-point tasks and code context, you should:
 5. Flag potential issues
 6. Extract deadlines, effort estimates, and tags from task descriptions
 
+When input is from speech-to-text (isVoiceInput=true):
+- Be lenient with grammar, filler words, and conversational patterns
+- Extract discrete tasks from run-on sentences and natural speech
+- Ignore filler words like "um", "uh", "like", "you know"
+- Convert conversational language to concise task descriptions
+- Example: "So um I need to like fix the login bug and then uh also we should add the dark mode"
+  becomes two tasks: "Fix login bug" and "Add dark mode feature"
+
 Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
 
 {
@@ -57,9 +65,10 @@ export class ClaudeService {
    */
   async formatTasks(
     rawText: string,
-    contextStr: string
+    contextStr: string,
+    isVoiceInput: boolean = false
   ): Promise<ClaudeFormatResponse> {
-    const prompt = `Raw tasks:
+    const prompt = `Raw tasks${isVoiceInput ? ' (from voice transcription)' : ''}:
 ${rawText}
 
 Context:
