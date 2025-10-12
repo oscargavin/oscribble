@@ -159,9 +159,8 @@ function App() {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Release any key in CMD+SHIFT+V combo to stop recording
-      // Check for v, Shift, Meta (Cmd), or Control key release
-      if (isRecording && (e.key === "v" || e.key === "V" || e.key === "Shift" || e.key === "Meta" || e.key === "Control")) {
+      // Stop recording when V key is released (most specific key in combo)
+      if (isRecording && (e.key === "v" || e.key === "V")) {
         e.preventDefault();
         handleVoiceStop();
       }
