@@ -132,28 +132,28 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Voice recording: CMD+SHIFT+V to start recording
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "v") {
+        e.preventDefault();
+        if (!isRecording && !isProcessing) {
+          handleVoiceStart();
+        }
+      }
       // Quick switcher: Cmd+K or Ctrl+K
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setShowQuickSwitcher(true);
-      }
-      // New window: Cmd+N or Ctrl+N (opens current project in new window)
-      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
-        e.preventDefault();
-        if (projectName) {
-          handleOpenInNewWindow(projectName);
-        }
       }
       // Close window: Cmd+W or Ctrl+W
       if ((e.metaKey || e.ctrlKey) && e.key === "w") {
         e.preventDefault();
         handleCloseWindow();
       }
-      // Voice recording: CMD+SHIFT+V to start recording
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "v") {
+      // New window: Cmd+N or Ctrl+N (opens current project in new window)
+      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
         e.preventDefault();
-        if (!isRecording && !isProcessing) {
-          handleVoiceStart();
+        if (projectName) {
+          handleOpenInNewWindow(projectName);
         }
       }
     };
