@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FileAutocomplete } from './FileAutocomplete';
-import { useVoiceRecording } from '../hooks/useVoiceRecording';
 
 interface RawInputProps {
   initialValue: string;
@@ -23,10 +22,6 @@ export const RawInput: React.FC<RawInputProps> = ({
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Voice recording state
-  const { isRecording, startRecording, stopRecording, error: recordingError } = useVoiceRecording();
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Update local state when initialValue changes (e.g., after formatting or project switch)
   useEffect(() => {
@@ -228,84 +223,6 @@ export const RawInput: React.FC<RawInputProps> = ({
     }
   };
 
-  // Keyboard shortcut for voice recording (CMD+SHIFT+V or CTRL+SHIFT+V)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // CMD+SHIFT+V or CTRL+SHIFT+V to start recording
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
-        e.preventDefault();
-        if (!isRecording && !formatting && !isProcessing) {
-          handleVoiceStart();
-        }
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      // Release CMD+SHIFT+V to stop recording
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
-        e.preventDefault();
-        if (isRecording) {
-          handleVoiceStop();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [isRecording, formatting, isProcessing]);
-
-  const handleVoiceStart = async () => {
-    // Check if OpenAI is configured
-    const settings = await window.electronAPI.getSettings();
-    if (!settings?.openai_api_key) {
-      alert('OpenAI API key required for voice input. Please add it in Settings.');
-      return;
-    }
-
-    await startRecording();
-  };
-
-  const handleVoiceStop = async () => {
-    setIsProcessing(true);
-    try {
-      const audioBlob = await stopRecording();
-      if (!audioBlob) {
-        throw new Error('No audio recorded');
-      }
-
-      // Convert blob to ArrayBuffer for IPC
-      const arrayBuffer = await audioBlob.arrayBuffer();
-
-      // Transcribe with OpenAI
-      const transcriptResult = await window.electronAPI.transcribeAudio(arrayBuffer);
-      if (!transcriptResult.success) {
-        throw new Error(transcriptResult.error || 'Transcription failed');
-      }
-
-      const transcript = transcriptResult.data;
-
-      // Gather context (check for @mentions in transcript)
-      const contextResult = await window.electronAPI.gatherContext(
-        transcript,
-        projectRoot
-      );
-      const contextStr = contextResult.success ? contextResult.context || '' : '';
-
-      // Format with Claude (with voice input flag)
-      await onFormat(transcript, contextStr, true);
-    } catch (error) {
-      console.error('Voice processing error:', error);
-      alert(`Voice processing failed: ${error.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleFormat = async () => {
     setFormatting(true);
     try {
@@ -345,20 +262,6 @@ export const RawInput: React.FC<RawInputProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2 no-drag">
-          <button
-            onMouseDown={handleVoiceStart}
-            onMouseUp={handleVoiceStop}
-            onMouseLeave={handleVoiceStop}
-            disabled={formatting || isProcessing}
-            className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed ${
-              isRecording
-                ? 'bg-red-600 text-white border-red-600 animate-pulse'
-                : 'border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000]'
-            }`}
-            title="Hold to record voice input (Cmd+Shift+V)"
-          >
-            {isProcessing ? 'PROCESSING...' : isRecording ? '🔴 RECORDING' : '🎤 VOICE'}
-          </button>
           <button
             onClick={handleFormat}
             disabled={formatting || !rawText.trim()}

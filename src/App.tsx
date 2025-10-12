@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Mic, Loader2 } from "lucide-react";
 import { Setup } from "./components/Setup";
 import { RawInput } from "./components/RawInput";
 import { TaskTree } from "./components/TaskTree";
@@ -8,6 +9,7 @@ import { QuickSwitcher } from "./components/QuickSwitcher";
 import { TaskNode, NotesFile, ClaudeFormatResponse } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { useProjects } from "./hooks/useProjects";
+import { useVoiceRecording } from "./hooks/useVoiceRecording";
 
 type View = "setup" | "raw" | "tasks";
 
@@ -24,6 +26,10 @@ function App() {
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
+
+  // Voice recording state
+  const { isRecording, startRecording, stopRecording } = useVoiceRecording();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Use the projects hook for centralized project state management
   const { projects, refreshProjects } = useProjects();
@@ -143,11 +149,32 @@ function App() {
         e.preventDefault();
         handleCloseWindow();
       }
+      // Voice recording: CMD+SHIFT+V to start recording
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "v") {
+        e.preventDefault();
+        if (!isRecording && !isProcessing) {
+          handleVoiceStart();
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Release CMD+SHIFT+V to stop recording
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "v") {
+        e.preventDefault();
+        if (isRecording) {
+          handleVoiceStop();
+        }
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [projectName]);
+    document.addEventListener("keyup", handleKeyUp);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [projectName, isRecording, isProcessing]);
 
   // File watcher: Auto-reload tasks when external changes detected
   useEffect(() => {
@@ -340,6 +367,53 @@ function App() {
     await window.electronAPI.closeWindow();
   };
 
+  const handleVoiceStart = async () => {
+    // Check if OpenAI is configured
+    const settings = await window.electronAPI.getSettings();
+    if (!settings?.openai_api_key) {
+      alert('OpenAI API key required for voice input. Please add it in Settings.');
+      return;
+    }
+
+    await startRecording();
+  };
+
+  const handleVoiceStop = async () => {
+    setIsProcessing(true);
+    try {
+      const audioBlob = await stopRecording();
+      if (!audioBlob) {
+        throw new Error('No audio recorded');
+      }
+
+      // Convert blob to ArrayBuffer for IPC
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Transcribe with OpenAI
+      const transcriptResult = await window.electronAPI.transcribeAudio(arrayBuffer);
+      if (!transcriptResult.success) {
+        throw new Error(transcriptResult.error || 'Transcription failed');
+      }
+
+      const transcript = transcriptResult.data;
+
+      // Gather context (check for @mentions in transcript)
+      const contextResult = await window.electronAPI.gatherContext(
+        transcript,
+        projectRoot
+      );
+      const contextStr = contextResult.success ? contextResult.context || '' : '';
+
+      // Format with Claude (with voice input flag)
+      await handleFormat(transcript, contextStr, true);
+    } catch (error) {
+      console.error('Voice processing error:', error);
+      alert(`Voice processing failed: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleFormat = async (
     rawText: string,
     contextStr: string,
@@ -497,6 +571,27 @@ function App() {
           />
         </div>
         <div className="flex items-center gap-3 no-drag">
+          {/* Voice Recording Button */}
+          <button
+            onMouseDown={handleVoiceStart}
+            onMouseUp={handleVoiceStop}
+            onMouseLeave={handleVoiceStop}
+            disabled={isProcessing}
+            className={`p-2.5 border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
+              isRecording
+                ? 'bg-red-600 border-red-600 text-white animate-pulse'
+                : isProcessing
+                ? 'bg-[#333333] border-[#444444] text-[#888888]'
+                : 'border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]'
+            }`}
+            title="Hold to record voice input (Cmd+Shift+V)"
+          >
+            {isProcessing ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Mic size={18} />
+            )}
+          </button>
           <button
             onClick={() => setShowSettings(true)}
             className="px-3 py-2 text-lg leading-none text-[var(--text-primary)] border border-white/10 hover:border-[#FF4D00] hover:text-[#FF4D00] transition-none"
