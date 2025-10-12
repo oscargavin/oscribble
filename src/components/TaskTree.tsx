@@ -1258,16 +1258,6 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       {/* Keyboard shortcut hints */}
       <div className="flex items-center gap-4 p-3 border-t border-[#222222] overflow-x-auto flex-nowrap bg-[#0A0A0A]">
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">1</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">2</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">3</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">4</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">FILTER</span>
-        </div>
-        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">N</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">NEW</span>
         </div>
@@ -1278,18 +1268,28 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <span className="text-[#888888] text-xs font-mono uppercase">NAV</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">←</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">→</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">EXPAND</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SPACE</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">M</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">METADATA</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SPACE</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">1</kbd>
+          <span className="text-[#666666]">/</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">2</kbd>
+          <span className="text-[#666666]">/</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">3</kbd>
+          <span className="text-[#666666]">/</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">4</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">FILTER</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">←</kbd>
+          <span className="text-[#666666]">/</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">→</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">EXPAND</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">DEL</kbd>
@@ -1300,6 +1300,10 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <span className="text-[#666666]">+</span>
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">C</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">COPY</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">R</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">RELATIONSHIPS</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
@@ -1314,10 +1318,6 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <span className="text-[#666666]">+</span>
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">L</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">CLEAR</span>
-        </div>
-        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">R</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">RELATIONSHIPS</span>
         </div>
       </div>
 
