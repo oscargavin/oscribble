@@ -24,7 +24,8 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; context?: string; error?: string }>;
   formatWithClaude: (
     rawText: string,
-    contextStr: string
+    contextStr: string,
+    isVoiceInput?: boolean
   ) => Promise<{ success: boolean; data?: any; error?: string }>;
   formatSingleTask: (
     taskText: string,
