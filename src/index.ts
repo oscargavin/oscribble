@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { StorageService } from './services/storage';
 import { ContextService } from './services/context';
 import { ClaudeService } from './services/claude';
+import { OpenAIService } from './services/openai';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -19,6 +20,7 @@ if (require('electron-squirrel-startup')) {
 
 // Initialize services
 let claudeService: ClaudeService | null = null;
+let openaiService: OpenAIService | null = null;
 
 // File watcher management
 const fileWatchers = new Map<BrowserWindow, { watcher: fs.FSWatcher; timeout: NodeJS.Timeout | null; projectName: string }>();
@@ -156,6 +158,35 @@ ipcMain.handle('init-claude', async (_, apiKey: string) => {
     claudeService = new ClaudeService(apiKey);
     return { success: true };
   } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Initialize OpenAI service
+ipcMain.handle('init-openai', async (_, apiKey: string) => {
+  try {
+    openaiService = new OpenAIService(apiKey);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to initialize OpenAI:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Transcribe audio with OpenAI
+ipcMain.handle('transcribe-audio', async (_, audioBuffer: ArrayBuffer) => {
+  try {
+    if (!openaiService) {
+      return { success: false, error: 'OpenAI not initialized' };
+    }
+
+    // Convert ArrayBuffer to Blob
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
+    const transcript = await openaiService.transcribe(audioBlob);
+
+    return { success: true, data: transcript };
+  } catch (error) {
+    console.error('Transcription error:', error);
     return { success: false, error: error.message };
   }
 });

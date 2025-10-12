@@ -1,5 +1,7 @@
 export interface ElectronAPI {
   initClaude: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
+  initOpenAI: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
+  transcribeAudio: (audioBuffer: ArrayBuffer) => Promise<{ success: boolean; data?: string; error?: string }>;
   getSettings: () => Promise<any>;
   saveSettings: (settings: any) => Promise<{ success: boolean; error?: string }>;
   getProjects: () => Promise<any[]>;

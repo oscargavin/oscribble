@@ -6,6 +6,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Expose IPC methods to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
   initClaude: (apiKey: string) => ipcRenderer.invoke('init-claude', apiKey),
+  initOpenAI: (apiKey: string) => ipcRenderer.invoke('init-openai', apiKey),
+  transcribeAudio: (audioBuffer: ArrayBuffer) => ipcRenderer.invoke('transcribe-audio', audioBuffer),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings: any) => ipcRenderer.invoke('save-settings', settings),
   getProjects: () => ipcRenderer.invoke('get-projects'),
