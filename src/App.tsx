@@ -572,13 +572,22 @@ function App() {
           />
         </div>
         <div className="flex items-center gap-3 no-drag">
+          {/* Toggle button - placed first to prevent layout shifts */}
+          {(tasks.length > 0 || view === "tasks") && (
+            <button
+              onClick={toggleView}
+              className="h-[28px] w-[56px] flex items-center justify-center text-xs leading-none font-mono uppercase tracking-wider border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+            >
+              {view === "raw" ? "TASKS" : "RAW"}
+            </button>
+          )}
           {/* Voice Recording Button */}
           <button
             onMouseDown={handleVoiceStart}
             onMouseUp={handleVoiceStop}
             onMouseLeave={handleVoiceStop}
             disabled={isProcessing}
-            className={`p-2.5 border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
+            className={`w-[28px] h-[28px] flex items-center justify-center border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
               isRecording
                 ? 'bg-red-600 border-red-600 text-white animate-pulse'
                 : isProcessing
@@ -588,30 +597,21 @@ function App() {
             title="Hold to record voice input (Cmd+Shift+V)"
           >
             {isProcessing ? (
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" />
             ) : (
-              <Mic size={18} />
+              <Mic size={14} />
             )}
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            className="px-3 py-2 text-lg leading-none text-[var(--text-primary)] border border-white/10 hover:border-[#FF4D00] hover:text-[#FF4D00] transition-none"
+            className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[#888888] border border-[#444444] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
             title="Settings"
           >
             ⚙
           </button>
-          {/* Only show toggle button if there are tasks to view or if currently viewing tasks */}
-          {(tasks.length > 0 || view === "tasks") && (
-            <button
-              onClick={toggleView}
-              className="px-4 py-2 text-xs leading-none font-mono uppercase tracking-wider border border-white/20 text-[var(--text-primary)] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-none"
-            >
-              {view === "raw" ? "View Tasks" : "Edit Raw"}
-            </button>
-          )}
           <button
             onClick={handleCloseWindow}
-            className="px-3 py-2 text-lg leading-none text-[var(--text-dim)] border border-white/10 hover:border-red-400 hover:text-red-400 transition-none"
+            className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[#888888] border border-[#444444] hover:border-red-600 hover:text-red-600 transition-colors duration-200"
             title="Close Window (Cmd+W)"
           >
             ✕

@@ -461,20 +461,20 @@ const TaskRow: React.FC<TaskRowProps> = ({
           className="flex-1 cursor-pointer"
           onDoubleClick={handleDoubleClick}
         >
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-start">
             {hasSubtasks ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleExpand(task.id);
                 }}
-                className="text-[#FF4D00] flex-shrink-0 hover:text-[#E6E6E6] transition-colors"
+                className="text-[#FF4D00] flex-shrink-0 hover:text-[#E6E6E6] transition-colors leading-none mt-[2px]"
                 title={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
               >
                 {isExpanded ? '▾' : '▸'}
               </button>
             ) : (
-              <span className="text-[#FF4D00] flex-shrink-0">▸</span>
+              <span className="text-[#FF4D00] flex-shrink-0 leading-none mt-[2px]">▸</span>
             )}
             <span className={`text-sm font-mono ${task.checked ? 'line-through text-[#666666]' : 'text-[#E6E6E6]'}`}>
               {task.text}
@@ -1260,6 +1260,14 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">N</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">NEW</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+          <span className="text-[#666666]">+</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+          <span className="text-[#666666]">+</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">V</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">VOICE</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↑</kbd>
