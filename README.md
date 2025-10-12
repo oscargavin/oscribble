@@ -6,6 +6,10 @@
 
 A brutalist task manager that transforms raw bullet-point notes into AI-analyzed, structured task lists. Built with Electron, React, and Claude AI.
 
+<p align="center">
+  <img src="screenshot.png" alt="Oscribble Interface" width="800"/>
+</p>
+
 ## Features
 
 - **Raw-to-Structured Conversion**: Write quick notes in plain text, let Claude organize them into prioritized tasks
