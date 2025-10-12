@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FileAutocomplete } from './FileAutocomplete';
+import { useVoiceRecording } from '../hooks/useVoiceRecording';
 
 interface RawInputProps {
   initialValue: string;
   projectName: string;
   projectRoot: string;
-  onFormat: (rawText: string, contextStr: string) => Promise<void>;
+  onFormat: (rawText: string, contextStr: string, isVoiceInput?: boolean) => Promise<void>;
 }
 
 export const RawInput: React.FC<RawInputProps> = ({
@@ -22,6 +23,10 @@ export const RawInput: React.FC<RawInputProps> = ({
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Voice recording state
+  const { isRecording, startRecording, stopRecording, error: recordingError } = useVoiceRecording();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Update local state when initialValue changes (e.g., after formatting or project switch)
   useEffect(() => {
@@ -223,6 +228,53 @@ export const RawInput: React.FC<RawInputProps> = ({
     }
   };
 
+  const handleVoiceStart = async () => {
+    // Check if OpenAI is configured
+    const settings = await window.electronAPI.getSettings();
+    if (!settings?.openai_api_key) {
+      alert('OpenAI API key required for voice input. Please add it in Settings.');
+      return;
+    }
+
+    await startRecording();
+  };
+
+  const handleVoiceStop = async () => {
+    setIsProcessing(true);
+    try {
+      const audioBlob = await stopRecording();
+      if (!audioBlob) {
+        throw new Error('No audio recorded');
+      }
+
+      // Convert blob to ArrayBuffer for IPC
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Transcribe with OpenAI
+      const transcriptResult = await window.electronAPI.transcribeAudio(arrayBuffer);
+      if (!transcriptResult.success) {
+        throw new Error(transcriptResult.error || 'Transcription failed');
+      }
+
+      const transcript = transcriptResult.data;
+
+      // Gather context (check for @mentions in transcript)
+      const contextResult = await window.electronAPI.gatherContext(
+        transcript,
+        projectRoot
+      );
+      const contextStr = contextResult.success ? contextResult.context || '' : '';
+
+      // Format with Claude (with voice input flag)
+      await onFormat(transcript, contextStr, true);
+    } catch (error) {
+      console.error('Voice processing error:', error);
+      alert(`Voice processing failed: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleFormat = async () => {
     setFormatting(true);
     try {
@@ -261,17 +313,33 @@ export const RawInput: React.FC<RawInputProps> = ({
             <span className="text-xs text-[#888888] font-mono uppercase">SAVING...</span>
           )}
         </div>
-        <button
-          onClick={handleFormat}
-          disabled={formatting || !rawText.trim()}
-          className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 no-drag flex items-center gap-2"
-        >
-          {formatting ? (
-            <span className="loading-ellipsis">FORMATTING</span>
-          ) : (
-            'FORMAT > CLAUDE'
-          )}
-        </button>
+        <div className="flex items-center gap-2 no-drag">
+          <button
+            onMouseDown={handleVoiceStart}
+            onMouseUp={handleVoiceStop}
+            onMouseLeave={handleVoiceStop}
+            disabled={formatting || isProcessing}
+            className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed ${
+              isRecording
+                ? 'bg-red-600 text-white border-red-600 animate-pulse'
+                : 'border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000]'
+            }`}
+            title="Hold to record voice input"
+          >
+            {isProcessing ? 'PROCESSING...' : isRecording ? '🔴 RECORDING' : '🎤 VOICE'}
+          </button>
+          <button
+            onClick={handleFormat}
+            disabled={formatting || !rawText.trim()}
+            className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2"
+          >
+            {formatting ? (
+              <span className="loading-ellipsis">FORMATTING</span>
+            ) : (
+              'FORMAT > CLAUDE'
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 p-4 overflow-auto relative">
