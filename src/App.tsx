@@ -379,6 +379,9 @@ function App() {
   };
 
   const handleVoiceStop = async () => {
+    // Don't process if not recording (prevents duplicate calls from onMouseUp + onMouseLeave)
+    if (!isRecording) return;
+
     setIsProcessing(true);
     try {
       const audioBlob = await stopRecording();
