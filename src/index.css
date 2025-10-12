@@ -1,0 +1,267 @@
+@import "tailwindcss";
+
+@source "../src/**/*.{ts,tsx,html}";
+
+:root {
+  /* Brutalist Tech Palette */
+  --bg-primary: #000000;
+  --bg-surface: #111111;
+  --text-primary: #E6E6E6;
+  --text-dim: #666666;
+  --accent-orange: #FF4D00;
+
+  /* Section Colors - Minimal Brutalist Approach */
+  --critical-bg: rgba(255, 77, 0, 0.08);
+  --critical-border: rgba(255, 77, 0, 0.6);
+
+  --perf-bg: rgba(230, 230, 230, 0.04);
+  --perf-border: rgba(230, 230, 230, 0.3);
+
+  --feature-bg: rgba(230, 230, 230, 0.04);
+  --feature-border: rgba(230, 230, 230, 0.25);
+
+  /* Typography Scale */
+  --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  --line-height-tight: 1.4;
+  --line-height-base: 1.5;
+  --letter-spacing-tight: -0.02em;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: var(--line-height-base);
+  letter-spacing: var(--letter-spacing-tight);
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  color: var(--text-primary);
+  overflow: hidden;
+  font-feature-settings: 'tnum' 1, 'case' 1; /* Tabular nums, case-sensitive forms */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-primary);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 77, 0, 0.3);
+}
+
+/* Draggable region styles */
+.drag-region {
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Loading shimmer animation - mechanical fade */
+@keyframes shimmer {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+.shimmer {
+  animation: shimmer 0.8s linear infinite;
+}
+
+/* Subtle pulse border - mechanical timing */
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(255, 77, 0, 0.3);
+  }
+  50% {
+    border-color: rgba(255, 77, 0, 0.7);
+  }
+}
+
+.loading-border {
+  animation: pulse-border 1.5s linear infinite;
+}
+
+/* Animated ellipses for loading state - crisp steps */
+@keyframes ellipsis {
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+  100% {
+    content: '.';
+  }
+}
+
+.loading-ellipsis::after {
+  content: '.';
+  animation: ellipsis 1s steps(3, end) infinite;
+  display: inline-block;
+  width: 1.5em;
+  text-align: left;
+}
+
+/* Raw Input - Keyboard Hints (Brutalist Tech) */
+.keyboard-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  transition: opacity 0.15s linear;
+}
+
+.keyboard-hint:hover {
+  opacity: 1;
+}
+
+.keyboard-hint kbd {
+  display: inline-block;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--text-primary);
+  border-radius: 0;
+  box-shadow: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.keyboard-hint:hover kbd {
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+}
+
+.keyboard-hint span {
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Raw Input - Formatted Background Layer */
+.formatted-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: var(--line-height-base);
+  letter-spacing: var(--letter-spacing-tight);
+  padding: 0;
+  color: transparent;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.formatted-line {
+  position: relative;
+  min-height: 1.5em;
+  padding-left: 0;
+}
+
+.line-arm {
+  position: absolute;
+  top: 0;
+  font-size: 13px;
+  line-height: var(--line-height-base);
+  color: var(--accent-orange);
+  opacity: 0.4;
+  transition: opacity 0.15s linear;
+  pointer-events: none;
+  user-select: none;
+}
+
+.formatted-line:hover .line-arm {
+  opacity: 0.8;
+}
+
+.line-content {
+  color: transparent;
+  user-select: none;
+}
+
+/* Raw Input - Textarea Styling */
+.raw-input-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: var(--text-primary);
+  resize: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: var(--line-height-base);
+  letter-spacing: var(--letter-spacing-tight);
+  padding: 0;
+  border: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  caret-color: var(--accent-orange);
+}
+
+.raw-input-textarea::placeholder {
+  color: var(--text-dim);
+  opacity: 0.4;
+  text-transform: lowercase;
+  font-style: normal;
+}
+
+.raw-input-textarea:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.raw-input-textarea:focus {
+  outline: none;
+}
+
+/* Indentation guides - minimal grid-lock aesthetic */
+.formatted-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent-orange);
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+
+.formatted-line:hover::before {
+  opacity: 0.15;
+}
