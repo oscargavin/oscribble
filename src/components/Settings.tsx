@@ -30,6 +30,14 @@ export const Settings: React.FC<SettingsProps> = ({
         throw new Error(result.error || 'Invalid API key');
       }
 
+      // Initialize OpenAI if key provided
+      if (openaiApiKey.trim()) {
+        const openaiInitResult = await window.electronAPI.initOpenAI(openaiApiKey);
+        if (!openaiInitResult.success) {
+          throw new Error(`Failed to initialize OpenAI: ${openaiInitResult.error}`);
+        }
+      }
+
       // Get current settings and update API keys
       const settings = await window.electronAPI.getSettings();
       await window.electronAPI.saveSettings({
