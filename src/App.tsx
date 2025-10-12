@@ -58,9 +58,18 @@ function App() {
             }
           }
 
-          // Load OpenAI API key if present
+          // Initialize OpenAI if API key is present
           if (settings?.openai_api_key) {
             setOpenaiApiKey(settings.openai_api_key);
+            const openaiInitResult = await window.electronAPI.initOpenAI(
+              settings.openai_api_key
+            );
+            if (!openaiInitResult.success) {
+              console.error(
+                "Failed to initialize OpenAI:",
+                openaiInitResult.error
+              );
+            }
           }
 
           setIsSetupComplete(true);
@@ -331,30 +340,40 @@ function App() {
     await window.electronAPI.closeWindow();
   };
 
-  const handleFormat = async (rawText: string, contextStr: string) => {
+  const handleFormat = async (
+    rawText: string,
+    contextStr: string,
+    isVoiceInput: boolean = false
+  ) => {
     try {
-      // Compute diff: only format what's new or changed
-      const currentLines = rawText.split("\n").filter((line) => line.trim());
-      const lastLines = lastFormattedRaw
-        .split("\n")
-        .filter((line) => line.trim());
+      let textToFormat = rawText;
 
-      // Find new/changed lines (simple set difference)
-      const lastLinesSet = new Set(lastLines);
-      const newLines = currentLines.filter((line) => !lastLinesSet.has(line));
+      // Only apply diff logic for manual text input (not voice)
+      if (!isVoiceInput) {
+        // Compute diff: only format what's new or changed
+        const currentLines = rawText.split("\n").filter((line) => line.trim());
+        const lastLines = lastFormattedRaw
+          .split("\n")
+          .filter((line) => line.trim());
 
-      // If nothing new, don't call Claude
-      if (newLines.length === 0) {
-        alert("No new changes to format");
-        return;
+        // Find new/changed lines (simple set difference)
+        const lastLinesSet = new Set(lastLines);
+        const newLines = currentLines.filter((line) => !lastLinesSet.has(line));
+
+        // If nothing new, don't call Claude
+        if (newLines.length === 0) {
+          alert("No new changes to format");
+          return;
+        }
+
+        textToFormat = newLines.join("\n");
       }
 
-      const diffText = newLines.join("\n");
-
-      // Format only the diff
+      // Format the text
       const result = await window.electronAPI.formatWithClaude(
-        diffText,
-        contextStr
+        textToFormat,
+        contextStr,
+        isVoiceInput
       );
 
       if (!result.success) {

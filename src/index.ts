@@ -299,12 +299,12 @@ ipcMain.handle('gather-context', async (_, rawText: string, projectRoot: string)
 });
 
 // Format with Claude
-ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string) => {
+ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false) => {
   try {
     if (!claudeService) {
       throw new Error('Claude service not initialized');
     }
-    const response = await claudeService.formatTasks(rawText, contextStr);
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };
