@@ -226,8 +226,8 @@ export const RawInput: React.FC<RawInputProps> = ({
   const handleFormat = async () => {
     setFormatting(true);
     try {
-      // Gather context from @mentions
-      const contextResult = await window.electronAPI.gatherContext(
+      // Gather context from @mentions and auto-discovery
+      const contextResult = await window.electronAPI.gatherProjectContext(
         rawText,
         projectRoot
       );
@@ -236,7 +236,21 @@ export const RawInput: React.FC<RawInputProps> = ({
         throw new Error(contextResult.error || 'Failed to gather context');
       }
 
-      await onFormat(rawText, contextResult.context || '');
+      // Format gathered context for Claude
+      let contextString = '';
+      if (contextResult.data) {
+        const gc = contextResult.data;
+        contextString = gc.files.map(f => {
+          const header = f.wasGrepped
+            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+            : `--- ${f.path} ---`;
+          return `${header}\n${f.content}`;
+        }).join('\n\n');
+
+        console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+      }
+
+      await onFormat(rawText, contextString);
     } catch (error) {
       console.error('Format error:', error);
       alert(`Failed to format: ${error.message}`);

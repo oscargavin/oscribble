@@ -421,15 +421,28 @@ function App() {
 
       const transcript = transcriptResult.data;
 
-      // Gather context (check for @mentions in transcript)
-      const contextResult = await window.electronAPI.gatherContext(
+      // Gather context from transcript (includes @mentions and auto-discovery)
+      const contextResult = await window.electronAPI.gatherProjectContext(
         transcript,
         projectRoot
       );
-      const contextStr = contextResult.success ? contextResult.context || '' : '';
+
+      // Format gathered context for Claude
+      let contextString = '';
+      if (contextResult.success && contextResult.data) {
+        const gc = contextResult.data;
+        contextString = gc.files.map(f => {
+          const header = f.wasGrepped
+            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+            : `--- ${f.path} ---`;
+          return `${header}\n${f.content}`;
+        }).join('\n\n');
+
+        console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+      }
 
       // Format with Claude (with voice input flag)
-      await handleFormat(transcript, contextStr, true);
+      await handleFormat(transcript, contextString, true);
     } catch (error) {
       console.error('Voice processing error:', error);
       alert(`Voice processing failed: ${error.message}`);
