@@ -3,7 +3,7 @@
 raw notes → structured tasks.
 brutalist task manager. claude ai.
 
-![oscribble interface](screenshot-2.png)
+![oscribble interface](screenshot.png)
 
 ## what it does
 
