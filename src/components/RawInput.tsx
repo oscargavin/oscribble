@@ -22,12 +22,25 @@ export const RawInput: React.FC<RawInputProps> = ({
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editableRef = useRef<HTMLDivElement>(null);
 
   // Update local state when initialValue changes (e.g., after formatting or project switch)
   useEffect(() => {
     setRawText(initialValue);
+    if (editableRef.current) {
+      editableRef.current.textContent = initialValue;
+    }
   }, [initialValue]);
+
+  // Sync contenteditable when rawText changes programmatically
+  useEffect(() => {
+    if (editableRef.current && editableRef.current.textContent !== rawText) {
+      const cursorPos = getCursorPosition();
+      editableRef.current.textContent = rawText;
+      // Restore cursor position after update
+      setTimeout(() => setCursorPos(cursorPos), 0);
+    }
+  }, [rawText]);
 
   // Load project files on mount or when project changes
   useEffect(() => {
@@ -40,14 +53,58 @@ export const RawInput: React.FC<RawInputProps> = ({
     loadFiles();
   }, [projectRoot]);
 
-  // Auto-focus textarea on mount and position cursor at end
+  // Helper: Get cursor position in contenteditable
+  const getCursorPosition = (): number => {
+    const selection = window.getSelection();
+    if (!selection || !editableRef.current) return 0;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(editableRef.current);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    return preCaretRange.toString().length;
+  };
+
+  // Helper: Set cursor position in contenteditable
+  const setCursorPos = (pos: number) => {
+    if (!editableRef.current) return;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    let charCount = 0;
+    const nodeStack: Node[] = [editableRef.current];
+    let node: Node | undefined;
+    let foundStart = false;
+
+    while (!foundStart && (node = nodeStack.pop())) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const textNode = node as Text;
+        const nextCharCount = charCount + textNode.length;
+        if (pos <= nextCharCount) {
+          const range = document.createRange();
+          range.setStart(textNode, pos - charCount);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          foundStart = true;
+        }
+        charCount = nextCharCount;
+      } else {
+        for (let i = node.childNodes.length - 1; i >= 0; i--) {
+          nodeStack.push(node.childNodes[i]);
+        }
+      }
+    }
+  };
+
+  // Auto-focus editable div on mount and position cursor at end
   useEffect(() => {
-    if (textareaRef.current) {
-      const textarea = textareaRef.current;
-      textarea.focus();
+    if (editableRef.current) {
+      editableRef.current.focus();
       // Set cursor position to end of existing text
-      const length = textarea.value.length;
-      textarea.setSelectionRange(length, length);
+      const length = rawText.length;
+      setCursorPos(length);
     }
   }, []);
 
@@ -103,15 +160,17 @@ export const RawInput: React.FC<RawInputProps> = ({
   }, [rawText, projectName, initialValue]);
 
   // Handle keyboard shortcuts
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const start = getCursorPosition();
+    const end = start; // For now, assume no selection
 
     // Cmd+L to clear all text
     if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
       e.preventDefault();
       setRawText('');
+      if (editableRef.current) {
+        editableRef.current.textContent = '';
+      }
       return;
     }
 
@@ -144,10 +203,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
       setRawText(newText);
       setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.selectionStart = newCursorPos;
-          textareaRef.current.selectionEnd = newCursorPos;
-        }
+        setCursorPos(newCursorPos);
       }, 0);
       return;
     }
@@ -168,10 +224,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
           setRawText(newText);
           setTimeout(() => {
-            if (textareaRef.current) {
-              textareaRef.current.selectionStart = newCursorPos;
-              textareaRef.current.selectionEnd = newCursorPos;
-            }
+            setCursorPos(newCursorPos);
           }, 0);
         }
       } else {
@@ -185,10 +238,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
         setRawText(newText);
         setTimeout(() => {
-          if (textareaRef.current) {
-            textareaRef.current.selectionStart = newCursorPos;
-            textareaRef.current.selectionEnd = newCursorPos;
-          }
+          setCursorPos(newCursorPos);
         }, 0);
       }
       return;
@@ -196,9 +246,11 @@ export const RawInput: React.FC<RawInputProps> = ({
   };
 
   // Handle text change and detect @ for autocomplete
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newText = e.target.value;
-    const cursorPos = e.target.selectionStart;
+  const handleInput = () => {
+    if (!editableRef.current) return;
+
+    const newText = editableRef.current.textContent || '';
+    const cursorPos = getCursorPosition();
 
     setRawText(newText);
     setCursorPosition(cursorPos);
@@ -224,8 +276,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
   // Handle file selection from autocomplete
   const handleFileSelect = (file: string) => {
-    if (textareaRef.current) {
-      const textarea = textareaRef.current;
+    if (editableRef.current) {
       const textBeforeCursor = rawText.substring(0, cursorPosition);
       const textAfterCursor = rawText.substring(cursorPosition);
       const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -242,9 +293,8 @@ export const RawInput: React.FC<RawInputProps> = ({
         // Set cursor position after the inserted file
         setTimeout(() => {
           const newCursorPos = lastAtIndex + file.length + 1;
-          textarea.selectionStart = newCursorPos;
-          textarea.selectionEnd = newCursorPos;
-          textarea.focus();
+          setCursorPos(newCursorPos);
+          editableRef.current?.focus();
         }, 0);
       }
     }
@@ -337,23 +387,25 @@ export const RawInput: React.FC<RawInputProps> = ({
             {renderFormattedBackground()}
           </div>
 
-          {/* Foreground textarea */}
-          <textarea
-            ref={textareaRef}
-            value={rawText}
-            onChange={handleTextChange}
+          {/* Foreground contenteditable */}
+          <div
+            ref={editableRef}
+            contentEditable={!formatting}
+            onInput={handleInput}
             onKeyDown={handleKeyDown}
-            disabled={formatting}
-            placeholder="Enter your tasks here...
+            suppressContentEditableWarning
+            className="raw-input-textarea"
+            spellCheck={false}
+            data-placeholder="Enter your tasks here...
 
 Examples:
 - Fix login bug
 - Optimize database queries
 - Type @ to mention files
 - Add tests for auth flow"
-            className="raw-input-textarea"
-            spellCheck={false}
-          />
+          >
+            {rawText}
+          </div>
         </div>
 
         {showAutocomplete && (

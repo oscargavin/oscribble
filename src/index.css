@@ -209,7 +209,7 @@ button {
   user-select: none;
 }
 
-/* Raw Input - Textarea Styling */
+/* Raw Input - Contenteditable Styling */
 .raw-input-textarea {
   position: absolute;
   top: 0;
@@ -218,7 +218,6 @@ button {
   height: 100%;
   background: transparent;
   color: var(--text-primary);
-  resize: none;
   outline: none;
   font-family: var(--font-mono);
   font-size: 13px;
@@ -233,14 +232,17 @@ button {
   caret-color: var(--accent-orange);
 }
 
-.raw-input-textarea::placeholder {
+/* Placeholder for contenteditable */
+.raw-input-textarea:empty::before {
+  content: attr(data-placeholder);
   color: var(--text-dim);
   opacity: 0.4;
   text-transform: lowercase;
   font-style: normal;
+  pointer-events: none;
 }
 
-.raw-input-textarea:disabled {
+.raw-input-textarea[contenteditable="false"] {
   opacity: 0.4;
   cursor: not-allowed;
 }
