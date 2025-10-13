@@ -431,16 +431,8 @@ const TaskRow: React.FC<TaskRowProps> = ({
   };
 
   const getPriorityStyles = () => {
-    switch (task.metadata?.priority) {
-      case 'high':
-        return 'border-l-2 border-l-[#FF4D00]';
-      case 'medium':
-        return ''; // No border for medium priority
-      case 'low':
-        return ''; // No border for low priority
-      default:
-        return '';
-    }
+    // Border-l visual indicators removed - priority now only shown via badges
+    return '';
   };
 
   const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
