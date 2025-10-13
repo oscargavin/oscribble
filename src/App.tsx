@@ -568,7 +568,9 @@ function App() {
       // Clear the raw.txt file to reflect that text has been formatted
       await window.electronAPI.saveRaw(projectName, "");
 
+      // Switch to tasks view with unchecked filter to show newly generated tasks
       setView("tasks");
+      setFilterMode("unchecked");
     } catch (error) {
       console.error("Format error:", error);
       alert(`Failed to format: ${error.message}`);
