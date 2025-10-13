@@ -435,9 +435,9 @@ const TaskRow: React.FC<TaskRowProps> = ({
       case 'high':
         return 'border-l-2 border-l-[#FF4D00]';
       case 'medium':
-        return 'border-l-2 border-l-[#E6E6E6]';
+        return ''; // No border for medium priority
       case 'low':
-        return ''; // No border for low priority (default)
+        return ''; // No border for low priority
       default:
         return '';
     }
