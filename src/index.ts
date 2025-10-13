@@ -298,6 +298,17 @@ ipcMain.handle('gather-context', async (_, rawText: string, projectRoot: string)
   }
 });
 
+// Gather project context (unified @mentions + auto-discovery)
+ipcMain.handle('gather-project-context', async (_, rawText: string, projectRoot: string) => {
+  try {
+    const context = await ContextService.gatherProjectContext(rawText, projectRoot);
+    return { success: true, data: context };
+  } catch (error: any) {
+    console.error('Error gathering project context:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Format with Claude
 ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false) => {
   try {
