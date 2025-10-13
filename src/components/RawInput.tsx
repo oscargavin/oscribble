@@ -66,24 +66,8 @@ export const RawInput: React.FC<RawInputProps> = ({
       // Add subtle tree arm for non-empty lines with indent > 0
       const showArm = trimmedLine.length > 0 && indentLevel > 0;
 
-      // Calculate padding and text-indent for proper text wrapping
-      // Each indent level = 2 spaces at ~8px each = 16px per level
-      // The arm "└─ " is positioned absolutely and is ~3 chars wide (24px)
-      // We want wrapped text to align with the first character, not the indent/pipe
-      const charWidth = 8; // Approximate character width in pixels for 13px monospace
-      const spacesWidth = indentLevel * 2 * charWidth; // Width of leading spaces
-      const armWidth = showArm ? 3 * charWidth : 0; // Width of "└─ "
-      const totalIndent = spacesWidth + armWidth;
-
       return (
-        <div
-          key={idx}
-          className="formatted-line"
-          style={{
-            paddingLeft: totalIndent > 0 ? `${totalIndent}px` : 0,
-            textIndent: totalIndent > 0 ? `-${totalIndent}px` : 0,
-          }}
-        >
+        <div key={idx} className="formatted-line">
           {showArm && (
             <span
               className="line-arm"
