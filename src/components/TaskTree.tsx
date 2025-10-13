@@ -956,10 +956,32 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
     }
   };
 
-  // Clear all tasks
+  // Clear all tasks visible in current view (respects filter mode)
   const clearAllTasks = () => {
-    onUpdate([]);
+    // Get IDs of all tasks visible in current view
+    const visibleTaskIds = new Set(displayTasks.map(task => task.id));
+
+    // Filter out only the tasks that are visible in current view
+    const deleteRecursive = (taskList: TaskNode[]): TaskNode[] => {
+      return taskList.filter((task) => {
+        // If this task is visible in current view, remove it
+        if (visibleTaskIds.has(task.id)) {
+          return false;
+        }
+        // Otherwise keep it, but recursively check children/subtasks
+        if (task.children.length > 0) {
+          task.children = deleteRecursive(task.children);
+        }
+        if (task.subtasks && task.subtasks.length > 0) {
+          task.subtasks = deleteRecursive(task.subtasks);
+        }
+        return true;
+      });
+    };
+
+    onUpdate(deleteRecursive(tasks));
     setFocusedTaskId(null);
+    setSelectedTaskIds(new Set());
   };
 
   // Toggle expand/collapse for subtasks
