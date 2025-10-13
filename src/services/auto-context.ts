@@ -32,7 +32,47 @@ export class AutoContextService {
     rawText: string,
     projectRoot: string
   ): Promise<GatheredContext> {
-    throw new Error('Not implemented yet');
+    const cacheDir = path.join(projectRoot, '.context-cache');
+
+    try {
+      // Step 1: Generate file tree
+      const fileTree = await this.generateFileTree(projectRoot);
+
+      // Step 2: Let Claude select files
+      const selection = await this.selectFiles(fileTree, rawText);
+
+      // Step 3: Combine explicit and discovered files
+      const allFiles: DiscoveredFile[] = [
+        ...selection.explicit.map(f => ({ file: f, readFully: true })),
+        ...selection.discovered
+      ];
+
+      // Step 4: Enforce budget (adaptive line limits)
+      const budgetedFiles = this.enforceLineBudget(allFiles, selection.explicit.length);
+
+      // Step 5: Load files
+      const fileContexts = await this.loadFiles(budgetedFiles, projectRoot, cacheDir);
+
+      const totalLines = fileContexts.reduce((sum, fc) => sum + fc.lineCount, 0);
+      const cacheHits = fileContexts.filter(fc => fc.wasGrepped === false).length;
+      const cacheMisses = fileContexts.length - cacheHits;
+
+      return {
+        files: fileContexts,
+        totalLines,
+        cacheHits,
+        cacheMisses
+      };
+    } catch (error) {
+      console.error('Error in discoverContext:', error);
+      // Return empty context on error (graceful degradation)
+      return {
+        files: [],
+        totalLines: 0,
+        cacheHits: 0,
+        cacheMisses: 0
+      };
+    }
   }
 
   /**
@@ -260,6 +300,43 @@ Return JSON only (no markdown):
       const lines = content.split('\n').slice(0, 300);
       return lines.join('\n') + '\n[... truncated, no keywords provided]';
     }
+  }
+
+  /**
+   * Enforce budget: drop lowest-priority discovered files if over 2000 lines
+   */
+  private enforceLineBudget(
+    files: DiscoveredFile[],
+    explicitCount: number
+  ): DiscoveredFile[] {
+    // Adaptive line limits based on file count
+    const totalFiles = files.length;
+    let maxLinesPerFile: number;
+
+    if (totalFiles === 1) maxLinesPerFile = 1000;
+    else if (totalFiles <= 3) maxLinesPerFile = 400;
+    else maxLinesPerFile = 250;
+
+    // Adjust discovered files to meet budget
+    const explicit = files.slice(0, explicitCount);
+    const discovered = files.slice(explicitCount);
+
+    // Sort discovered by readFully (true first, as they're likely smaller/more important)
+    discovered.sort((a, b) => (b.readFully ? 1 : 0) - (a.readFully ? 1 : 0));
+
+    // Keep all explicit, trim discovered if needed
+    let estimatedLines = explicitCount * maxLinesPerFile;
+    const kept: DiscoveredFile[] = [];
+
+    for (const file of discovered) {
+      const estimatedFileLines = file.readFully ? maxLinesPerFile : 150;
+      if (estimatedLines + estimatedFileLines <= 2000) {
+        kept.push(file);
+        estimatedLines += estimatedFileLines;
+      }
+    }
+
+    return [...explicit, ...kept];
   }
 }
 
