@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TaskNode } from '../types';
 import { Checkbox } from './ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
+import { FileAutocomplete } from './FileAutocomplete';
 
 type FilterMode = 'all' | 'unchecked' | 'complete' | 'critical' | 'blocked';
 
@@ -869,6 +870,23 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const navigationScheduledRef = useRef<number | null>(null);
   const taskContainerRef = useRef<HTMLDivElement>(null);
 
+  // File autocomplete state
+  const [projectFiles, setProjectFiles] = useState<string[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteQuery, setAutocompleteQuery] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
+
+  // Load project files for autocomplete
+  useEffect(() => {
+    if (projectRoot) {
+      window.electronAPI.getProjectFiles(projectRoot).then((result) => {
+        if (result.success && result.files) {
+          setProjectFiles(result.files);
+        }
+      });
+    }
+  }, [projectRoot]);
+
   // Flatten tasks for navigation
   const flattenTasks = (taskList: TaskNode[], currentExpanded: Set<string> = expandedTasks): TaskNode[] => {
     const result: TaskNode[] = [];
@@ -1523,11 +1541,29 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
     }
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!newTaskText.trim()) {
       setIsCreating(false);
       setNewTaskText('');
+      setShowAutocomplete(false);
       return;
+    }
+
+    // Gather context from @mentions if present
+    let contextFiles: Array<{ path: string; wasGrepped: boolean; matchedKeywords?: string[] }> = [];
+    if (newTaskText.includes('@')) {
+      try {
+        const contextResult = await window.electronAPI.gatherProjectContext(newTaskText, projectRoot);
+        if (contextResult.success && contextResult.data.files) {
+          contextFiles = contextResult.data.files.map((f: any) => ({
+            path: f.path,
+            wasGrepped: f.wasGrepped,
+            matchedKeywords: f.matchedKeywords
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to gather context:', error);
+      }
     }
 
     const newTask: TaskNode = {
@@ -1538,6 +1574,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       children: [],
       metadata: {
         formatted: false, // Not yet analyzed by Claude
+        context_files: contextFiles.length > 0 ? contextFiles : undefined,
       },
     };
 
@@ -1547,6 +1584,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
     // Reset state
     setNewTaskText('');
     setIsCreating(false);
+    setShowAutocomplete(false);
 
     // Focus the new task
     setFocusedTaskId(newTask.id);
@@ -1555,6 +1593,73 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const handleCancelCreate = () => {
     setIsCreating(false);
     setNewTaskText('');
+    setShowAutocomplete(false);
+  };
+
+  const handleNewTaskTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cursor = e.target.selectionStart || 0;
+
+    setNewTaskText(value);
+    setCursorPosition(cursor);
+
+    // Check if we should show autocomplete
+    // Look backwards from cursor to find @ symbol
+    let atIndex = -1;
+    for (let i = cursor - 1; i >= 0; i--) {
+      if (value[i] === '@') {
+        atIndex = i;
+        break;
+      }
+      if (value[i] === ' ' || value[i] === '\n') {
+        break; // Stop if we hit whitespace before finding @
+      }
+    }
+
+    if (atIndex !== -1) {
+      // Extract query from @ to cursor
+      const query = value.substring(atIndex + 1, cursor);
+      setAutocompleteQuery(query);
+      setShowAutocomplete(true);
+    } else {
+      setShowAutocomplete(false);
+    }
+  };
+
+  const handleFileSelect = (file: string) => {
+    // Find the @ symbol before cursor
+    let atIndex = -1;
+    for (let i = cursorPosition - 1; i >= 0; i--) {
+      if (newTaskText[i] === '@') {
+        atIndex = i;
+        break;
+      }
+      if (newTaskText[i] === ' ' || newTaskText[i] === '\n') {
+        break;
+      }
+    }
+
+    if (atIndex !== -1) {
+      // Replace from @ to cursor with @file
+      const before = newTaskText.substring(0, atIndex);
+      const after = newTaskText.substring(cursorPosition);
+      const newText = `${before}@${file}${after}`;
+
+      setNewTaskText(newText);
+      setShowAutocomplete(false);
+
+      // Focus back on input
+      if (newTaskInputRef.current) {
+        newTaskInputRef.current.focus();
+        // Set cursor after the inserted file path
+        const newCursorPos = atIndex + file.length + 1;
+        setTimeout(() => {
+          if (newTaskInputRef.current) {
+            newTaskInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          }
+        }, 0);
+      }
+    }
   };
 
   const handleNewTaskKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1586,10 +1691,10 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
               ref={newTaskInputRef}
               type="text"
               value={newTaskText}
-              onChange={(e) => setNewTaskText(e.target.value)}
+              onChange={handleNewTaskTextChange}
               onKeyDown={handleNewTaskKeyDown}
               onBlur={handleCreateTask}
-              placeholder="Enter task description..."
+              placeholder="Enter task description... (type @ to mention files)"
               className="flex-1 bg-[#0A0A0A] text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-sm font-mono placeholder:text-[#666666]"
             />
           </div>
@@ -1746,6 +1851,16 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           />
         );
       })()}
+
+      {/* File Autocomplete */}
+      {showAutocomplete && isCreating && (
+        <FileAutocomplete
+          files={projectFiles}
+          query={autocompleteQuery}
+          onSelect={handleFileSelect}
+          onClose={() => setShowAutocomplete(false)}
+        />
+      )}
     </div>
   );
 };
