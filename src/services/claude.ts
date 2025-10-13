@@ -4,12 +4,17 @@ import { ClaudeFormatResponse } from '../types';
 const SYSTEM_PROMPT = `You are a task analysis assistant for software developers.
 
 Given raw bullet-point tasks and code context, you should:
-1. Parse tasks into structured categories (CRITICAL, PERFORMANCE, FEATURES)
+1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency and impact
 2. Identify dependencies and blockers
 3. Detect missing tasks based on code context
 4. Suggest reordering for logical execution
 5. Flag potential issues
 6. Extract deadlines, effort estimates, and tags from task descriptions
+
+Priority Guidelines:
+- HIGH: Urgent tasks, critical bugs, blockers, or tasks with immediate deadlines
+- MEDIUM: Important features, performance improvements, or tasks with near-term deadlines
+- LOW: Nice-to-have features, refactoring, documentation, or tasks without deadlines
 
 When input is from speech-to-text (isVoiceInput=true):
 - Be lenient with grammar, filler words, and conversational patterns
@@ -24,7 +29,7 @@ Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
 {
   "sections": [{
     "category": string,
-    "priority": string,
+    "priority": "high" | "medium" | "low",  // Task priority level
     "tasks": [{
       "text": string,
       "notes": ["insight1", "insight2"],              // Array of strings

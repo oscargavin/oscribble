@@ -62,6 +62,10 @@ export interface ElectronAPI {
   startTaskTimer: (projectName: string, taskId: string) => Promise<{ success: boolean; start_time?: number; error?: string }>;
   completeTask: (projectName: string, taskId: string) => Promise<{ success: boolean; duration?: number; error?: string }>;
   getRecentCompletions: (projectName: string, limit?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+  // Priority edit tracking API
+  logPriorityEdit: (entry: any, projectName: string) => Promise<{ success: boolean; error?: string }>;
+  getRecentPriorityEdits: (projectName: string, limit?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+  getPriorityEditStats: (projectName: string) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 declare global {

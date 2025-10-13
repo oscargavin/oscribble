@@ -4,12 +4,13 @@ import { Checkbox } from './ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
 import { FileAutocomplete } from './FileAutocomplete';
 
-type FilterMode = 'all' | 'unchecked' | 'complete' | 'critical' | 'blocked';
+type FilterMode = 'all' | 'unchecked' | 'complete' | 'high' | 'blocked';
 
 interface TaskTreeProps {
   tasks: TaskNode[];
   onUpdate: (tasks: TaskNode[]) => void;
   projectRoot: string;
+  projectName: string;
   filterMode: FilterMode;
   setFilterMode: (mode: FilterMode) => void;
   showContextFiles: Set<string>;
@@ -29,8 +30,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({ filterMode, hasVoice = false })
         return '[NO UNCOMPLETED TASKS]';
       case 'complete':
         return '[NO COMPLETED TASKS]';
-      case 'critical':
-        return '[NO CRITICAL TASKS]';
+      case 'high':
+        return '[NO HIGH PRIORITY TASKS]';
       case 'blocked':
         return '[NO BLOCKED TASKS]';
       case 'all':
@@ -279,6 +280,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
+  const [isEditingPriority, setIsEditingPriority] = useState(false);
   const [metadataForm, setMetadataForm] = useState({
     deadline: task.metadata?.deadline || '',
     effort_estimate: task.metadata?.effort_estimate || '',
@@ -351,19 +353,35 @@ const TaskRow: React.FC<TaskRowProps> = ({
     }
   };
 
-  // Listen for keyboard shortcut to trigger metadata edit
+  // Listen for keyboard shortcuts
   useEffect(() => {
-    if (isFocused && !isEditing && !isEditingMetadata) {
+    if (isFocused && !isEditing && !isEditingMetadata && !isEditingPriority) {
       const handleKeyDown = (e: KeyboardEvent) => {
         if ((e.key === 'm' || e.key === 'M') && e.target === document.body) {
           e.preventDefault();
           handleMetadataEdit();
         }
+        if ((e.key === 'p' || e.key === 'P') && e.target === document.body && task.metadata?.priority) {
+          e.preventDefault();
+          setIsEditingPriority(true);
+        }
       };
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isFocused, isEditing, isEditingMetadata]);
+
+    // ESC to close priority editor
+    if (isEditingPriority) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setIsEditingPriority(false);
+        }
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isFocused, isEditing, isEditingMetadata, isEditingPriority, task.metadata?.priority]);
 
   const handleCopy = async () => {
     // Format the task content for copying
@@ -420,15 +438,38 @@ const TaskRow: React.FC<TaskRowProps> = ({
 
   const getPriorityStyles = () => {
     switch (task.metadata?.priority) {
-      case 'critical':
+      case 'high':
         return 'border-l-2 border-l-[#FF4D00]';
-      case 'performance':
+      case 'medium':
         return 'border-l-2 border-l-[#E6E6E6]';
-      case 'feature':
-        return ''; // No border for feature priority (default)
+      case 'low':
+        return ''; // No border for low priority (default)
       default:
         return '';
     }
+  };
+
+  const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
+    switch (priority) {
+      case 'high':
+        return 'border-[#FF4D00] text-[#FF4D00]';
+      case 'medium':
+        return 'border-[#E6E6E6] text-[#E6E6E6]';
+      case 'low':
+        return 'border-[#666666] text-[#666666]';
+    }
+  };
+
+  const handlePriorityChange = (newPriority: 'high' | 'medium' | 'low') => {
+    const updatedMetadata = {
+      ...task.metadata,
+      priority: newPriority,
+      original_priority: task.metadata?.original_priority || task.metadata?.priority, // Store original if first edit
+      priority_edited: true,
+    };
+
+    onMetadataChange(task.id, updatedMetadata);
+    setIsEditingPriority(false);
   };
 
   const hasSubtasks = task.subtasks && task.subtasks.length > 0;
@@ -668,10 +709,77 @@ const TaskRow: React.FC<TaskRowProps> = ({
         </div>
       )}
 
-      {task.metadata?.priority && !isRawTask && (
-        <span className="text-xs px-2 py-1 border border-[#E6E6E6] bg-transparent text-[#E6E6E6] font-mono uppercase tracking-wider ml-auto">
+      {task.metadata?.priority && !isRawTask && !isEditingPriority && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditingPriority(true);
+          }}
+          className={`text-xs px-2 py-1 border bg-transparent font-mono uppercase tracking-wider ml-auto hover:opacity-80 transition-opacity ${getPriorityColor(task.metadata.priority)}`}
+          title={`Click to change priority${task.metadata.priority_edited ? ' (edited by you)' : ''}`}
+        >
           {task.metadata.priority}
-        </span>
+          {task.metadata.priority_edited && (
+            <span className="ml-1 text-[10px]">*</span>
+          )}
+        </button>
+      )}
+
+      {/* Priority Editor Dropdown */}
+      {isEditingPriority && (
+        <div className="absolute right-3 top-12 z-50 bg-black border-2 border-[#FF4D00] shadow-lg">
+          <div className="p-2 border-b border-[#333333]">
+            <div className="text-[#E6E6E6] font-mono text-xs uppercase tracking-wider mb-1">
+              [PRIORITY]
+            </div>
+            {task.metadata?.original_priority && task.metadata.original_priority !== task.metadata.priority && (
+              <div className="text-[#666666] font-mono text-[10px]">
+                Claude suggested: {task.metadata.original_priority}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col">
+            <button
+              onClick={() => handlePriorityChange('high')}
+              className={`px-3 py-2 text-left text-xs font-mono uppercase border-b border-[#333333] ${
+                task.metadata?.priority === 'high'
+                  ? 'bg-[#FF4D00]/20 text-[#FF4D00] border-[#FF4D00]'
+                  : 'text-[#E6E6E6] hover:bg-[#FF4D00]/10 hover:text-[#FF4D00]'
+              }`}
+            >
+              HIGH
+            </button>
+            <button
+              onClick={() => handlePriorityChange('medium')}
+              className={`px-3 py-2 text-left text-xs font-mono uppercase border-b border-[#333333] ${
+                task.metadata?.priority === 'medium'
+                  ? 'bg-[#E6E6E6]/20 text-[#E6E6E6] border-[#E6E6E6]'
+                  : 'text-[#888888] hover:bg-[#E6E6E6]/10 hover:text-[#E6E6E6]'
+              }`}
+            >
+              MEDIUM
+            </button>
+            <button
+              onClick={() => handlePriorityChange('low')}
+              className={`px-3 py-2 text-left text-xs font-mono uppercase ${
+                task.metadata?.priority === 'low'
+                  ? 'bg-[#666666]/20 text-[#666666] border-[#666666]'
+                  : 'text-[#666666] hover:bg-[#666666]/10 hover:text-[#888888]'
+              }`}
+            >
+              LOW
+            </button>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditingPriority(false);
+            }}
+            className="w-full px-3 py-2 border-t border-[#333333] text-[#666666] hover:text-[#E6E6E6] text-xs font-mono uppercase transition-colors"
+          >
+            [ESC] CANCEL
+          </button>
+        </div>
       )}
 
       {/* Badges for raw tasks - placed inline */}
@@ -855,7 +963,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
   );
 };
 
-export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, filterMode, setFilterMode, showContextFiles, setShowContextFiles, hasVoice = false }) => {
+export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, projectName, filterMode, setFilterMode, showContextFiles, setShowContextFiles, hasVoice = false }) => {
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
@@ -911,8 +1019,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         return taskList.filter(task => !task.checked);
       case 'complete':
         return taskList.filter(task => task.checked);
-      case 'critical':
-        return taskList.filter(task => task.metadata?.priority === 'critical');
+      case 'high':
+        return taskList.filter(task => task.metadata?.priority === 'high');
       case 'blocked':
         return taskList.filter(task => task.metadata?.blocked_by && task.metadata.blocked_by.length > 0);
       default:
@@ -1060,7 +1168,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       }
       if (e.key === '4') {
         e.preventDefault();
-        setFilterMode('critical');
+        setFilterMode('high');
         return;
       }
       if (e.key === '5') {
@@ -1427,7 +1535,48 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
     setSelectedTaskIds(new Set());
   };
 
-  const handleMetadataChange = (id: string, metadata: TaskNode['metadata']) => {
+  const handleMetadataChange = async (id: string, metadata: TaskNode['metadata']) => {
+    // Check if priority was edited
+    const findTask = (taskList: TaskNode[]): TaskNode | null => {
+      for (const task of taskList) {
+        if (task.id === id) return task;
+        if (task.children.length > 0) {
+          const found = findTask(task.children);
+          if (found) return found;
+        }
+        if (task.subtasks && task.subtasks.length > 0) {
+          const found = findTask(task.subtasks);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const task = findTask(tasks);
+    if (task && metadata?.priority_edited && metadata.priority !== task.metadata?.priority) {
+      // Priority was changed - log it for learning
+      const originalPriority = metadata.original_priority || task.metadata?.priority;
+      if (originalPriority && metadata.priority && originalPriority !== metadata.priority) {
+        try {
+          await window.electronAPI.logPriorityEdit({
+            task_id: id,
+            task_text: task.text,
+            original_priority: originalPriority as 'high' | 'medium' | 'low',
+            edited_priority: metadata.priority as 'high' | 'medium' | 'low',
+            edited_at: Date.now(),
+            task_context: {
+              tags: metadata.tags,
+              deadline: metadata.deadline,
+              effort_estimate: metadata.effort_estimate,
+              has_dependencies: !!(metadata.depends_on && metadata.depends_on.length > 0),
+            },
+          }, projectName);
+        } catch (error) {
+          console.error('Failed to log priority edit:', error);
+        }
+      }
+    }
+
     const updateRecursive = (taskList: TaskNode[]): TaskNode[] => {
       return taskList.map((task) => {
         if (task.id === id) {
@@ -1505,12 +1654,15 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       const updateRecursive = (taskList: TaskNode[]): TaskNode[] => {
         return taskList.map((t) => {
           if (t.id === taskId) {
+            const priority = section.priority as 'high' | 'medium' | 'low';
             return {
               ...t,
               text: formattedTask.text, // Update text with formatted version
               metadata: {
                 ...t.metadata,
-                priority: section.priority as 'critical' | 'performance' | 'feature',
+                priority: priority,
+                original_priority: priority, // Store Claude's original suggestion
+                priority_edited: false, // Not yet edited by user
                 notes: formattedTask.notes,
                 depends_on: formattedTask.depends_on,
                 related_to: formattedTask.related_to,

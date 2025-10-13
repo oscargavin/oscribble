@@ -53,4 +53,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('complete-task', projectName, taskId),
   getRecentCompletions: (projectName: string, limit?: number) =>
     ipcRenderer.invoke('get-recent-completions', projectName, limit),
+  // Priority edit tracking API
+  logPriorityEdit: (entry: any, projectName: string) =>
+    ipcRenderer.invoke('log-priority-edit', entry, projectName),
+  getRecentPriorityEdits: (projectName: string, limit?: number) =>
+    ipcRenderer.invoke('get-recent-priority-edits', projectName, limit),
+  getPriorityEditStats: (projectName: string) =>
+    ipcRenderer.invoke('get-priority-edit-stats', projectName),
 });

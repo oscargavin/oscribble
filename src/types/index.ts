@@ -6,7 +6,9 @@ export interface TaskNode {
   children: TaskNode[];
   subtasks?: TaskNode[];   // Explicit subtasks (distinct from hierarchical children)
   metadata?: {
-    priority?: 'critical' | 'performance' | 'feature';
+    priority?: 'high' | 'medium' | 'low';  // User-editable priority
+    original_priority?: 'high' | 'medium' | 'low';  // Claude's original suggestion (for learning)
+    priority_edited?: boolean; // Whether user has edited priority
     blocked_by?: string[]; // Array of task IDs (legacy)
     depends_on?: string[]; // Task dependencies (replaces blocked_by)
     related_to?: string[]; // Related task IDs
@@ -123,4 +125,25 @@ export interface CompletionLog {
   version: string;
   retention_policy: string; // e.g., "last_100"
   completions: CompletionLogEntry[];
+}
+
+// Priority edit tracking for learning feedback
+export interface PriorityEditEntry {
+  task_id: string;
+  task_text: string;
+  original_priority: 'high' | 'medium' | 'low';
+  edited_priority: 'high' | 'medium' | 'low';
+  edited_at: number;        // Unix timestamp
+  task_context?: {          // Context that might inform future suggestions
+    tags?: string[];
+    deadline?: string;
+    effort_estimate?: string;
+    has_dependencies?: boolean;
+  };
+}
+
+export interface PriorityLog {
+  version: string;
+  retention_policy: string; // e.g., "last_100"
+  edits: PriorityEditEntry[];
 }

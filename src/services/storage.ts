@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { NotesFile, ProjectSettings, AppSettings, CompletionLog, CompletionLogEntry } from '../types';
+import { NotesFile, ProjectSettings, AppSettings, CompletionLog, CompletionLogEntry, PriorityLog, PriorityEditEntry } from '../types';
 
 const APP_DIR = path.join(os.homedir(), '.project-stickies');
 
@@ -299,5 +299,102 @@ export class StorageService {
     } catch (error) {
       console.error('Failed to clear old cache:', error);
     }
+  }
+
+  /**
+   * Get priority edit log for a project
+   */
+  static async getPriorityLog(projectName: string): Promise<PriorityLog> {
+    const logPath = path.join(APP_DIR, projectName, 'priority_log.json');
+    try {
+      const data = await fs.readFile(logPath, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      // Return empty log if file doesn't exist
+      return {
+        version: '1.0.0',
+        retention_policy: 'last_100',
+        edits: []
+      };
+    }
+  }
+
+  /**
+   * Save priority edit log for a project
+   */
+  static async savePriorityLog(projectName: string, log: PriorityLog): Promise<void> {
+    const logPath = path.join(APP_DIR, projectName, 'priority_log.json');
+    await this.atomicWrite(logPath, JSON.stringify(log, null, 2));
+  }
+
+  /**
+   * Append a priority edit entry to the log (with retention policy)
+   */
+  static async appendPriorityEdit(projectName: string, entry: PriorityEditEntry): Promise<void> {
+    const log = await this.getPriorityLog(projectName);
+    log.edits.push(entry);
+
+    // Apply retention policy - keep only last 100 edits
+    if (log.edits.length > 100) {
+      log.edits = log.edits.slice(-100);
+    }
+
+    await this.savePriorityLog(projectName, log);
+  }
+
+  /**
+   * Get recent priority edits for analysis (default: last 20)
+   */
+  static async getRecentPriorityEdits(projectName: string, limit: number = 20): Promise<PriorityEditEntry[]> {
+    const log = await this.getPriorityLog(projectName);
+    return log.edits.slice(-limit);
+  }
+
+  /**
+   * Get priority edit statistics for learning insights
+   */
+  static async getPriorityEditStats(projectName: string): Promise<{
+    totalEdits: number;
+    upgradeCount: number;  // low->medium, low->high, medium->high
+    downgradeCount: number; // high->medium, high->low, medium->low
+    commonPatterns: Array<{ from: string; to: string; count: number }>;
+  }> {
+    const log = await this.getPriorityLog(projectName);
+
+    const stats = {
+      totalEdits: log.edits.length,
+      upgradeCount: 0,
+      downgradeCount: 0,
+      commonPatterns: [] as Array<{ from: string; to: string; count: number }>
+    };
+
+    // Count pattern occurrences
+    const patternMap = new Map<string, number>();
+
+    for (const edit of log.edits) {
+      const key = `${edit.original_priority}->${edit.edited_priority}`;
+      patternMap.set(key, (patternMap.get(key) || 0) + 1);
+
+      // Count upgrades/downgrades
+      const priorityValue = { low: 1, medium: 2, high: 3 };
+      const originalValue = priorityValue[edit.original_priority];
+      const editedValue = priorityValue[edit.edited_priority];
+
+      if (editedValue > originalValue) {
+        stats.upgradeCount++;
+      } else if (editedValue < originalValue) {
+        stats.downgradeCount++;
+      }
+    }
+
+    // Convert pattern map to sorted array
+    stats.commonPatterns = Array.from(patternMap.entries())
+      .map(([pattern, count]) => {
+        const [from, to] = pattern.split('->');
+        return { from, to, count };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return stats;
   }
 }

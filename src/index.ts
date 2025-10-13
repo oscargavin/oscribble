@@ -677,6 +677,39 @@ ipcMain.handle('get-recent-completions', async (_, projectName: string, limit: n
   }
 });
 
+// Log priority edit for learning feedback
+ipcMain.handle('log-priority-edit', async (_, entry: any, projectName: string) => {
+  try {
+    await StorageService.appendPriorityEdit(projectName, entry);
+    return { success: true };
+  } catch (error) {
+    console.error('Log priority edit error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Get recent priority edits for analysis
+ipcMain.handle('get-recent-priority-edits', async (_, projectName: string, limit: number = 20) => {
+  try {
+    const edits = await StorageService.getRecentPriorityEdits(projectName, limit);
+    return { success: true, data: edits };
+  } catch (error) {
+    console.error('Get recent priority edits error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Get priority edit statistics
+ipcMain.handle('get-priority-edit-stats', async (_, projectName: string) => {
+  try {
+    const stats = await StorageService.getPriorityEditStats(projectName);
+    return { success: true, data: stats };
+  } catch (error) {
+    console.error('Get priority edit stats error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Initialize storage on app ready
 app.whenReady().then(async () => {
   await StorageService.initialize();

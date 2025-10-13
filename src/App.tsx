@@ -13,7 +13,7 @@ import { useVoiceRecording } from "./hooks/useVoiceRecording";
 import logo from "./oscribble-logo.png";
 
 type View = "setup" | "raw" | "tasks";
-type FilterMode = 'all' | 'unchecked' | 'complete' | 'critical' | 'blocked';
+type FilterMode = 'all' | 'unchecked' | 'complete' | 'high' | 'blocked';
 
 function App() {
   const [view, setView] = useState<View>("setup");
@@ -519,6 +519,7 @@ function App() {
 
       for (const section of response.sections) {
         for (const task of section.tasks) {
+          const priority = section.priority as "high" | "medium" | "low";
           newTasks.push({
             id: uuidv4(),
             text: task.text,
@@ -526,10 +527,9 @@ function App() {
             indent: 0,
             children: [],
             metadata: {
-              priority: section.priority as
-                | "critical"
-                | "performance"
-                | "feature",
+              priority: priority,
+              original_priority: priority, // Store Claude's original suggestion
+              priority_edited: false, // Not yet edited by user
               blocked_by: task.blocked_by,
               depends_on: task.depends_on,
               related_to: task.related_to,
@@ -597,7 +597,7 @@ function App() {
   };
 
   const cycleFilterMode = () => {
-    const modes: FilterMode[] = ['all', 'unchecked', 'complete', 'critical', 'blocked'];
+    const modes: FilterMode[] = ['all', 'unchecked', 'complete', 'high', 'blocked'];
     const currentIndex = modes.indexOf(filterMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     setFilterMode(modes[nextIndex]);
@@ -608,7 +608,7 @@ function App() {
       case 'all': return <List size={14} />;
       case 'unchecked': return <Circle size={14} />;
       case 'complete': return <Check size={14} />;
-      case 'critical': return <AlertCircle size={14} />;
+      case 'high': return <AlertCircle size={14} />;
       case 'blocked': return <Ban size={14} />;
     }
   };
@@ -618,7 +618,7 @@ function App() {
       case 'all': return 'All tasks (1)';
       case 'unchecked': return 'Incomplete tasks (2)';
       case 'complete': return 'Complete tasks (3)';
-      case 'critical': return 'Critical tasks (4)';
+      case 'high': return 'High priority tasks (4)';
       case 'blocked': return 'Blocked tasks (5)';
     }
   };
@@ -733,6 +733,7 @@ function App() {
             tasks={tasks}
             onUpdate={handleTaskUpdate}
             projectRoot={projectRoot}
+            projectName={projectName}
             filterMode={filterMode}
             setFilterMode={setFilterMode}
             showContextFiles={showContextFiles}
