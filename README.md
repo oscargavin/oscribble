@@ -3,6 +3,8 @@
 raw notes → structured tasks.
 brutalist task manager. claude ai.
 
+![oscribble interface](screenshot-2.png)
+
 ## what it does
 
 - raw text becomes prioritized task lists
