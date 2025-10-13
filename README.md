@@ -10,7 +10,10 @@ brutalist task manager. claude ai.
 - raw text becomes prioritized task lists
 - voice input. toggle record `CMD+R`. transcribe via openai.
 - `@mentions` load file context for smarter task analysis
+- auto-context discovery. claude finds relevant files automatically.
+- context tracking. see which files informed each task.
 - hierarchical tasks. expand/collapse. arrow keys.
+- multi-select tasks. `Shift+↑↓`. batch operations.
 - dependency detection. blocked task flags.
 - multi-project. quick switch `CMD+K`.
 - keyboard-first. no mouse required.
@@ -35,8 +38,10 @@ requires node 18+, macos 11+
 ## use
 
 write raw notes. `CMD+Enter` to format.
-arrow keys navigate. `Space` toggles done.
-`@filepath` mentions include code context.
+claude auto-discovers relevant project files.
+`@filepath` mentions force specific files.
+arrow keys navigate. `Shift+↑↓` multi-select.
+`Space` toggles done. `CMD+O` shows context used.
 
 ### keyboard shortcuts
 
@@ -45,17 +50,19 @@ CMD+K       quick project switcher
 CMD+1-9     switch to project (alphabetical)
 CMD+T       toggle raw/tasks view
 CMD+R       toggle voice recording
+CMD+O       show context files (focused/selected tasks)
 ESC         cancel recording
 
 ↑/↓         navigate
+Shift+↑/↓   multi-select tasks
 ←/→         collapse/expand
-Space       toggle complete
+Space       toggle complete (single/batch)
 N           new task
 M           edit metadata
 R           edit dependencies
-Delete      remove task
+Delete      remove task (single/batch)
 
-1-4         filter: all/unchecked/critical/blocked
+1-5         filter: all/unchecked/complete/critical/blocked
 ```
 
 ## data
@@ -67,6 +74,7 @@ projects.json       # project registry
 {project}/
   notes.json        # structured tasks
   raw.txt           # autosaved input
+  .context-cache/   # file context cache (7 day expiry)
 ```
 
 ## api keys
