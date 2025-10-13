@@ -60,7 +60,7 @@ export interface ClaudeFormatResponse {
 
 export interface ClaudeSection {
   category: string;
-  priority: string;
+  priority: 'high' | 'medium' | 'low';
   tasks: ClaudeTask[];
 }
 

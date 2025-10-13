@@ -187,6 +187,8 @@ export const RawInput: React.FC<RawInputProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
 
+      if (!editableRef.current) return;
+
       // Find the current line
       const textBeforeCursor = rawText.substring(0, start);
       const lines = textBeforeCursor.split('\n');
@@ -196,15 +198,25 @@ export const RawInput: React.FC<RawInputProps> = ({
       const indentMatch = currentLine.match(/^(\s*)/);
       const indentation = indentMatch ? indentMatch[1] : '';
 
-      // Insert newline with same indentation
-      const textAfterCursor = rawText.substring(end);
-      const newText = rawText.substring(0, start) + '\n' + indentation + textAfterCursor;
-      const newCursorPos = start + 1 + indentation.length;
+      // Insert newline with same indentation into the DOM
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
 
-      setRawText(newText);
-      setTimeout(() => {
-        setCursorPos(newCursorPos);
-      }, 0);
+        // Create text node with newline + indentation
+        const textNode = document.createTextNode('\n' + indentation);
+        range.insertNode(textNode);
+
+        // Move cursor to end of inserted text
+        range.setStartAfter(textNode);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        // Update state
+        handleInput();
+      }
       return;
     }
 
@@ -212,33 +224,35 @@ export const RawInput: React.FC<RawInputProps> = ({
     if (e.key === 'Tab') {
       e.preventDefault();
 
+      if (!editableRef.current) return;
+
+      const text = editableRef.current.textContent || '';
+      const lines = text.split('\n');
+      const cursorLine = text.substring(0, start).split('\n').length - 1;
+
       if (e.shiftKey) {
         // Shift+Tab to unindent
-        const lines = rawText.split('\n');
-        const cursorLine = rawText.substring(0, start).split('\n').length - 1;
-
         if (lines[cursorLine].startsWith('  ')) {
           lines[cursorLine] = lines[cursorLine].substring(2);
           const newText = lines.join('\n');
-          const newCursorPos = Math.max(0, start - 2);
+          editableRef.current.textContent = newText;
 
-          setRawText(newText);
+          const newCursorPos = Math.max(0, start - 2);
           setTimeout(() => {
             setCursorPos(newCursorPos);
+            handleInput();
           }, 0);
         }
       } else {
         // Tab to indent (add 2 spaces at start of line)
-        const lines = rawText.split('\n');
-        const cursorLine = rawText.substring(0, start).split('\n').length - 1;
-
         lines[cursorLine] = '  ' + lines[cursorLine];
         const newText = lines.join('\n');
-        const newCursorPos = start + 2;
+        editableRef.current.textContent = newText;
 
-        setRawText(newText);
+        const newCursorPos = start + 2;
         setTimeout(() => {
           setCursorPos(newCursorPos);
+          handleInput();
         }, 0);
       }
       return;
@@ -403,9 +417,7 @@ Examples:
 - Optimize database queries
 - Type @ to mention files
 - Add tests for auth flow"
-          >
-            {rawText}
-          </div>
+          />
         </div>
 
         {showAutocomplete && (
