@@ -104,3 +104,6 @@ out/
 
 # User data (created at runtime)
 .project-stickies/
+
+# Git worktrees (development workspaces)
+.worktrees/
