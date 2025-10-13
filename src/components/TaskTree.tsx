@@ -409,10 +409,10 @@ const TaskRow: React.FC<TaskRowProps> = ({
     <>
     <div
       data-task-id={task.id}
-      className={`flex items-start gap-3 p-3 ${!isSelected ? 'border-b border-[#111111]' : ''} hover:bg-[#0A0A0A] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused ? 'border border-[#FF4D00] bg-[#FF4D00]/5' : ''} ${getSelectionBorderClasses()}`}
+      className={`flex items-start gap-3 p-3 border-2 ${!isSelected && !isFocused ? 'border-transparent border-b-[#111111]' : ''} hover:bg-[#0A0A0A] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused ? 'border-[#FF4D00] bg-[#FF4D00]/5' : ''} ${getSelectionBorderClasses()}`}
       style={{
         marginLeft: `${(task.indent + depth) * 20}px`,
-        borderLeft: !isFocused && !isSelected && (task.indent + depth) > 0 ? '1px solid #222222' : undefined,
+        borderLeft: !isFocused && !isSelected && (task.indent + depth) > 0 ? '2px solid #222222' : undefined,
         minHeight: isRawTask ? '96px' : undefined, // Extra height for raw tasks to fit buttons below badges
       }}
       onMouseEnter={() => setIsHovered(true)}
