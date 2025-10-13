@@ -33,7 +33,6 @@ const config: ForgeConfig = {
     new MakerDMG({
       format: 'ULFO',
       icon: './oscribble.icns',
-      background: './oscribble.png',
     }),
     new MakerRpm({}),
     new MakerDeb({}),
