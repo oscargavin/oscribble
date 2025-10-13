@@ -280,8 +280,8 @@ const TaskRow: React.FC<TaskRowProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
-  const [isEditingPriority, setIsEditingPriority] = useState(false);
   const [metadataForm, setMetadataForm] = useState({
+    priority: (task.metadata?.priority || '') as '' | 'high' | 'medium' | 'low',
     deadline: task.metadata?.deadline || '',
     effort_estimate: task.metadata?.effort_estimate || '',
     tags: task.metadata?.tags?.join(', ') || '',
@@ -314,6 +314,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
   const handleMetadataEdit = () => {
     setIsEditingMetadata(true);
     setMetadataForm({
+      priority: (task.metadata?.priority || '') as '' | 'high' | 'medium' | 'low',
       deadline: task.metadata?.deadline || '',
       effort_estimate: task.metadata?.effort_estimate || '',
       tags: task.metadata?.tags?.join(', ') || '',
@@ -321,8 +322,16 @@ const TaskRow: React.FC<TaskRowProps> = ({
   };
 
   const handleMetadataSave = () => {
+    // Check if priority was changed
+    const priorityChanged = metadataForm.priority && metadataForm.priority !== task.metadata?.priority;
+
     const updatedMetadata = {
       ...task.metadata,
+      priority: metadataForm.priority || undefined,
+      original_priority: priorityChanged
+        ? (task.metadata?.original_priority || task.metadata?.priority)
+        : task.metadata?.original_priority,
+      priority_edited: priorityChanged || task.metadata?.priority_edited || false,
       deadline: metadataForm.deadline.trim() || undefined,
       effort_estimate: metadataForm.effort_estimate.trim() || undefined,
       tags: metadataForm.tags.trim()
@@ -337,6 +346,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
   const handleMetadataCancel = () => {
     setIsEditingMetadata(false);
     setMetadataForm({
+      priority: (task.metadata?.priority || '') as '' | 'high' | 'medium' | 'low',
       deadline: task.metadata?.deadline || '',
       effort_estimate: task.metadata?.effort_estimate || '',
       tags: task.metadata?.tags?.join(', ') || '',
@@ -355,33 +365,17 @@ const TaskRow: React.FC<TaskRowProps> = ({
 
   // Listen for keyboard shortcuts
   useEffect(() => {
-    if (isFocused && !isEditing && !isEditingMetadata && !isEditingPriority) {
+    if (isFocused && !isEditing && !isEditingMetadata) {
       const handleKeyDown = (e: KeyboardEvent) => {
         if ((e.key === 'm' || e.key === 'M') && e.target === document.body) {
           e.preventDefault();
           handleMetadataEdit();
         }
-        if ((e.key === 'p' || e.key === 'P') && e.target === document.body && task.metadata?.priority) {
-          e.preventDefault();
-          setIsEditingPriority(true);
-        }
       };
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-
-    // ESC to close priority editor
-    if (isEditingPriority) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          setIsEditingPriority(false);
-        }
-      };
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isFocused, isEditing, isEditingMetadata, isEditingPriority, task.metadata?.priority]);
+  }, [isFocused, isEditing, isEditingMetadata]);
 
   const handleCopy = async () => {
     // Format the task content for copying
@@ -458,18 +452,6 @@ const TaskRow: React.FC<TaskRowProps> = ({
       case 'low':
         return 'border-[#666666] text-[#666666]';
     }
-  };
-
-  const handlePriorityChange = (newPriority: 'high' | 'medium' | 'low') => {
-    const updatedMetadata = {
-      ...task.metadata,
-      priority: newPriority,
-      original_priority: task.metadata?.original_priority || task.metadata?.priority, // Store original if first edit
-      priority_edited: true,
-    };
-
-    onMetadataChange(task.id, updatedMetadata);
-    setIsEditingPriority(false);
   };
 
   const hasSubtasks = task.subtasks && task.subtasks.length > 0;
@@ -551,6 +533,35 @@ const TaskRow: React.FC<TaskRowProps> = ({
         />
       ) : isEditingMetadata ? (
         <div className="flex-1 space-y-2 py-1">
+          {task.metadata?.priority && (
+            <div className="flex items-center gap-2">
+              <label className="text-[#E6E6E6] text-xs font-mono w-16">PRIORITY:</label>
+              <div className="flex gap-2">
+                {(['high', 'medium', 'low'] as const).map((priority) => (
+                  <button
+                    key={priority}
+                    onClick={() => setMetadataForm({ ...metadataForm, priority })}
+                    className={`px-2 py-1 text-xs font-mono uppercase border ${
+                      metadataForm.priority === priority
+                        ? priority === 'high'
+                          ? 'border-[#FF4D00] text-[#FF4D00] bg-[#FF4D00]/20'
+                          : priority === 'medium'
+                          ? 'border-[#E6E6E6] text-[#E6E6E6] bg-[#E6E6E6]/20'
+                          : 'border-[#666666] text-[#666666] bg-[#666666]/20'
+                        : 'border-[#444444] text-[#888888] hover:border-[#666666]'
+                    }`}
+                  >
+                    {priority}
+                  </button>
+                ))}
+              </div>
+              {task.metadata.original_priority && task.metadata.original_priority !== metadataForm.priority && (
+                <span className="text-[#666666] text-[10px] font-mono ml-auto">
+                  Claude: {task.metadata.original_priority}
+                </span>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <label className="text-[#E6E6E6] text-xs font-mono w-16">DUE:</label>
             <input
@@ -709,77 +720,20 @@ const TaskRow: React.FC<TaskRowProps> = ({
         </div>
       )}
 
-      {task.metadata?.priority && !isRawTask && !isEditingPriority && (
+      {task.metadata?.priority && !isRawTask && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setIsEditingPriority(true);
+            handleMetadataEdit();
           }}
           className={`text-xs px-2 py-1 border bg-transparent font-mono uppercase tracking-wider ml-auto hover:opacity-80 transition-opacity ${getPriorityColor(task.metadata.priority)}`}
-          title={`Click to change priority${task.metadata.priority_edited ? ' (edited by you)' : ''}`}
+          title={`Click to edit priority (M)${task.metadata.priority_edited ? ' (edited by you)' : ''}`}
         >
           {task.metadata.priority}
           {task.metadata.priority_edited && (
             <span className="ml-1 text-[10px]">*</span>
           )}
         </button>
-      )}
-
-      {/* Priority Editor Dropdown */}
-      {isEditingPriority && (
-        <div className="absolute right-3 top-12 z-50 bg-black border-2 border-[#FF4D00] shadow-lg">
-          <div className="p-2 border-b border-[#333333]">
-            <div className="text-[#E6E6E6] font-mono text-xs uppercase tracking-wider mb-1">
-              [PRIORITY]
-            </div>
-            {task.metadata?.original_priority && task.metadata.original_priority !== task.metadata.priority && (
-              <div className="text-[#666666] font-mono text-[10px]">
-                Claude suggested: {task.metadata.original_priority}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col">
-            <button
-              onClick={() => handlePriorityChange('high')}
-              className={`px-3 py-2 text-left text-xs font-mono uppercase border-b border-[#333333] ${
-                task.metadata?.priority === 'high'
-                  ? 'bg-[#FF4D00]/20 text-[#FF4D00] border-[#FF4D00]'
-                  : 'text-[#E6E6E6] hover:bg-[#FF4D00]/10 hover:text-[#FF4D00]'
-              }`}
-            >
-              HIGH
-            </button>
-            <button
-              onClick={() => handlePriorityChange('medium')}
-              className={`px-3 py-2 text-left text-xs font-mono uppercase border-b border-[#333333] ${
-                task.metadata?.priority === 'medium'
-                  ? 'bg-[#E6E6E6]/20 text-[#E6E6E6] border-[#E6E6E6]'
-                  : 'text-[#888888] hover:bg-[#E6E6E6]/10 hover:text-[#E6E6E6]'
-              }`}
-            >
-              MEDIUM
-            </button>
-            <button
-              onClick={() => handlePriorityChange('low')}
-              className={`px-3 py-2 text-left text-xs font-mono uppercase ${
-                task.metadata?.priority === 'low'
-                  ? 'bg-[#666666]/20 text-[#666666] border-[#666666]'
-                  : 'text-[#666666] hover:bg-[#666666]/10 hover:text-[#888888]'
-              }`}
-            >
-              LOW
-            </button>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditingPriority(false);
-            }}
-            className="w-full px-3 py-2 border-t border-[#333333] text-[#666666] hover:text-[#E6E6E6] text-xs font-mono uppercase transition-colors"
-          >
-            [ESC] CANCEL
-          </button>
-        </div>
       )}
 
       {/* Badges for raw tasks - placed inline */}
