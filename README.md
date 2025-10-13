@@ -87,7 +87,7 @@ see which files claude used: press `CMD+O` on any task.
 ### task timing & learning
 complete a task → duration automatically logged.
 next format → claude sees your completion history.
-time estimates improve from your patterns (last 100 tasks).
+time estimates improve from your patterns (last 10 tasks).
 
 active tasks show pulsing orange indicator.
 
@@ -111,7 +111,7 @@ projects.json         # project registry
 {project}/
   notes.json          # structured tasks
   raw.txt             # autosaved input
-  completion_log.json # task timing history (last 100 completions)
+  completion_log.json # task timing history (last 10 completions)
   .context-cache/     # file context cache (7 day expiry)
 ```
 

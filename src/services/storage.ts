@@ -242,7 +242,7 @@ export class StorageService {
       // Return empty log if file doesn't exist
       return {
         version: '1.0.0',
-        retention_policy: 'last_100',
+        retention_policy: 'last_10',
         completions: []
       };
     }
@@ -263,9 +263,9 @@ export class StorageService {
     const log = await this.getCompletionLog(projectName);
     log.completions.push(entry);
 
-    // Apply retention policy - keep only last 100 completions
-    if (log.completions.length > 100) {
-      log.completions = log.completions.slice(-100);
+    // Apply retention policy - keep only last 10 completions
+    if (log.completions.length > 10) {
+      log.completions = log.completions.slice(-10);
     }
 
     await this.saveCompletionLog(projectName, log);
