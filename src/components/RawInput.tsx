@@ -318,7 +318,7 @@ export const RawInput: React.FC<RawInputProps> = ({
             {formatting ? (
               <span className="loading-ellipsis">FORMATTING</span>
             ) : (
-              'FORMAT > CLAUDE'
+              'FORMAT'
             )}
           </button>
         </div>
