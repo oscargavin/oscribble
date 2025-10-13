@@ -54,40 +54,40 @@ function App() {
 
         const settings = await window.electronAPI.getSettings();
 
+        // Initialize API services if keys are present (independent of project state)
+        if (settings?.api_key) {
+          setApiKey(settings.api_key);
+          const initResult = await window.electronAPI.initClaude(
+            settings.api_key
+          );
+          if (!initResult.success) {
+            console.error(
+              "Failed to re-initialize Claude:",
+              initResult.error
+            );
+          }
+        }
+
+        // Initialize OpenAI if API key is present (graceful degradation if not set)
+        if (settings?.openai_api_key) {
+          setOpenaiApiKey(settings.openai_api_key);
+          const openaiInitResult = await window.electronAPI.initOpenAI(
+            settings.openai_api_key
+          );
+          if (!openaiInitResult.success) {
+            console.error(
+              "Failed to initialize OpenAI:",
+              openaiInitResult.error
+            );
+          }
+        }
+
         // Determine which project to load:
         // 1. URL parameter (for new windows opened for specific projects)
         // 2. settings.current_project (for first window or last used)
         const targetProject = urlProject || settings?.current_project;
 
         if (targetProject) {
-          // Re-initialize Claude with stored API key
-          if (settings?.api_key) {
-            setApiKey(settings.api_key);
-            const initResult = await window.electronAPI.initClaude(
-              settings.api_key
-            );
-            if (!initResult.success) {
-              console.error(
-                "Failed to re-initialize Claude:",
-                initResult.error
-              );
-            }
-          }
-
-          // Initialize OpenAI if API key is present
-          if (settings?.openai_api_key) {
-            setOpenaiApiKey(settings.openai_api_key);
-            const openaiInitResult = await window.electronAPI.initOpenAI(
-              settings.openai_api_key
-            );
-            if (!openaiInitResult.success) {
-              console.error(
-                "Failed to initialize OpenAI:",
-                openaiInitResult.error
-              );
-            }
-          }
-
           setIsSetupComplete(true);
           setProjectName(targetProject);
 
