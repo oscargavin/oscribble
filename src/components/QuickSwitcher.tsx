@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { ProjectSettings } from '../types';
 
 interface QuickSwitcherProps {
@@ -22,6 +23,17 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Create alphabetical projects list for hotkey mapping
+  const alphabeticalProjects = [...projects].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  // Get hotkey number for a project (1-9 based on alphabetical order)
+  const getHotkeyNumber = (projectName: string): number | null => {
+    const index = alphabeticalProjects.findIndex(p => p.name === projectName);
+    return index >= 0 && index < 9 ? index + 1 : null;
+  };
+
   // Reset state and focus input when opened
   useEffect(() => {
     if (isOpen) {
@@ -33,10 +45,16 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
     }
   }, [isOpen]);
 
-  // Filter projects based on query
-  const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(query.toLowerCase())
-  );
+  // Filter and sort projects: current first, then alphabetically
+  const filteredProjects = projects
+    .filter((project) =>
+      project.name.toLowerCase().includes(query.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (a.name === currentProject) return -1;
+      if (b.name === currentProject) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
   // Reset selected index when filtered results change
   useEffect(() => {
@@ -61,7 +79,8 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
         if (filteredProjects[selectedIndex]) {
           // Shift+Enter opens in new window
           if (e.shiftKey && onOpenInNewWindow) {
-            handleOpenInWindow(filteredProjects[selectedIndex].name);
+            onOpenInNewWindow(filteredProjects[selectedIndex].name);
+            onClose();
           } else {
             handleSelect(filteredProjects[selectedIndex].name);
           }
@@ -83,11 +102,25 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
     onClose();
   };
 
-  const handleOpenInWindow = (projectName: string) => {
+  const handleOpenInWindow = (e: React.MouseEvent, projectName: string) => {
+    e.stopPropagation();
     if (onOpenInNewWindow) {
       onOpenInNewWindow(projectName);
     }
     onClose();
+  };
+
+  const formatLastAccessed = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
   };
 
   if (!isOpen) return null;
@@ -114,28 +147,53 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
               no projects found
             </div>
           ) : (
-            filteredProjects.map((project, index) => (
-              <button
+            filteredProjects.map((project, index) => {
+              const hotkeyNumber = getHotkeyNumber(project.name);
+              return (
+              <div
                 key={project.name}
                 onClick={() => handleSelect(project.name)}
-                className={`w-full px-4 py-3 text-left text-sm font-mono transition-opacity flex items-center justify-between border-b border-[var(--text-dim)]/30 last:border-0 ${
+                className={`group relative w-full px-3 py-2.5 text-left text-xs cursor-pointer transition-all flex items-center justify-between border-b border-[var(--text-dim)]/30 last:border-0 ${
                   index === selectedIndex
-                    ? 'bg-[#FF4D00] text-black'
-                    : 'text-[var(--text-primary)] hover:opacity-70'
+                    ? 'bg-[#FF4D00]/10 text-[var(--text-primary)] border-l-2 border-l-[#FF4D00] pl-[10px]'
+                    : 'text-[var(--text-primary)] hover:bg-[#0A0A0A]'
                 }`}
               >
-                <span className="flex-1 truncate">{project.name}</span>
-                {project.name === currentProject && (
-                  <span className="text-xs ml-2 opacity-70 uppercase tracking-wider">current</span>
-                )}
-              </button>
-            ))
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {hotkeyNumber && (
+                    <span className="text-[10px] text-[var(--text-dim)] font-mono w-4 text-center flex-shrink-0">
+                      {hotkeyNumber}
+                    </span>
+                  )}
+                  <span className="font-mono truncate">{project.name}</span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {onOpenInNewWindow && project.name !== currentProject && (
+                    <button
+                      onClick={(e) => handleOpenInWindow(e, project.name)}
+                      className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-[#FF4D00]/10 text-[var(--text-dim)] hover:text-[#FF4D00] z-10"
+                      title="Open in new window (Shift+Enter)"
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  )}
+                  {project.name === currentProject ? (
+                    <span className="text-[10px] uppercase tracking-wider text-[#FF4D00] ml-1">current</span>
+                  ) : (
+                    <span className="text-[var(--text-dim)] text-[10px] uppercase tracking-wider ml-1">
+                      {formatLastAccessed(project.last_accessed)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+            })
           )}
         </div>
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-[var(--text-dim)] bg-black text-[10px] text-[var(--text-dim)] flex items-center justify-between uppercase tracking-wider">
-          <span>↑↓ navigate • enter select{onOpenInNewWindow ? ' • shift+enter new window' : ''}</span>
+          <span>↑↓ navigate • enter select • cmd+# switch{onOpenInNewWindow ? ' • shift+enter new window' : ''}</span>
           <span>esc close</span>
         </div>
       </div>

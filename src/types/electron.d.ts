@@ -37,6 +37,9 @@ export interface ElectronAPI {
   getDirectorySuggestions: (
     partialPath: string
   ) => Promise<{ success: boolean; directories: string[]; error?: string }>;
+  selectDirectory: (
+    defaultPath?: string
+  ) => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
   openProjectWindow: (
     projectName: string
   ) => Promise<{ success: boolean; error?: string }>;

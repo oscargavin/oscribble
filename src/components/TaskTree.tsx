@@ -486,10 +486,20 @@ const TaskRow: React.FC<TaskRowProps> = ({
             )}
           </div>
           {task.metadata?.notes && task.metadata.notes.length > 0 && (
-            <div className="text-xs text-[#888888] mt-1 font-mono pl-4 space-y-1 border-l border-[#333333]">
-              {task.metadata.notes.map((note, index) => (
-                <div key={index} className="pl-2">- {note}</div>
-              ))}
+            <div className="text-xs text-[#888888] mt-1 font-mono pl-4 relative">
+              {/* Vertical trunk line for all notes except after the last one */}
+              <div className="absolute left-[1.2rem] top-0 bottom-0 w-[1px] bg-[#333333]" style={{ height: 'calc(100% - 1em)' }} />
+
+              {task.metadata.notes.map((note, index) => {
+                const isLast = index === task.metadata!.notes!.length - 1;
+                const branch = isLast ? '└─' : '├─';
+                return (
+                  <div key={index} className="flex items-start relative" style={{ lineHeight: '1.2' }}>
+                    <span className="text-[#333333] mr-1 flex-shrink-0 z-10 bg-[var(--bg-primary)]">{branch}</span>
+                    <span className="flex-1">{note}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
           {task.metadata?.blocked_by && task.metadata.blocked_by.length > 0 && (
@@ -716,6 +726,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const [formattingTaskId, setFormattingTaskId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const newTaskInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevTaskCountRef = useRef(tasks.length);
 
   // Flatten tasks for navigation
   const flattenTasks = (taskList: TaskNode[], currentExpanded: Set<string> = expandedTasks): TaskNode[] => {
@@ -844,25 +856,6 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         return;
       }
 
-      // Filter toggles (1-4 keys)
-      if (e.key === '1') {
-        e.preventDefault();
-        setFilterMode('all');
-        return;
-      } else if (e.key === '2') {
-        e.preventDefault();
-        setFilterMode('unchecked');
-        return;
-      } else if (e.key === '3') {
-        e.preventDefault();
-        setFilterMode('critical');
-        return;
-      } else if (e.key === '4') {
-        e.preventDefault();
-        setFilterMode('blocked');
-        return;
-      }
-
       // ArrowRight to expand
       if (e.key === 'ArrowRight' && focusedTaskId) {
         e.preventDefault();
@@ -894,6 +887,9 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
           if (currentIndex < displayTasks.length - 1) {
             setFocusedTaskId(displayTasks[currentIndex + 1].id);
+          } else {
+            // Wrap around to the top
+            setFocusedTaskId(displayTasks[0].id);
           }
         }
       } else if (e.key === 'ArrowUp') {
@@ -902,6 +898,9 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
           if (currentIndex > 0) {
             setFocusedTaskId(displayTasks[currentIndex - 1].id);
+          } else {
+            // Wrap around to the bottom
+            setFocusedTaskId(displayTasks[displayTasks.length - 1].id);
           }
         }
       }
@@ -957,6 +956,28 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       }
     }
   }, [focusedTaskId]);
+
+  // Scroll to bottom when new tasks are added
+  useEffect(() => {
+    const currentTaskCount = tasks.length;
+    const prevTaskCount = prevTaskCountRef.current;
+
+    // Only scroll if tasks were added (not removed or just updated)
+    if (currentTaskCount > prevTaskCount && scrollContainerRef.current) {
+      // Use setTimeout to ensure DOM has updated with new tasks
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            top: scrollContainerRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 50);
+    }
+
+    // Update the previous count
+    prevTaskCountRef.current = currentTaskCount;
+  }, [tasks]);
 
   // Focus input when entering create mode
   useEffect(() => {
@@ -1205,16 +1226,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
 
   return (
     <div ref={containerRef} className="flex flex-col h-full bg-[var(--bg-primary)]">
-      {/* Filter indicator */}
-      {filterMode !== 'all' && (
-        <div className="p-2 border-b border-[#FF4D00] bg-[#FF4D00]/10">
-          <span className="text-[#FF4D00] text-xs font-mono uppercase tracking-wider">
-            [FILTER: {filterMode.toUpperCase()}] ({displayTasks.length}/{flatTasks.length} tasks)
-          </span>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-auto py-1">
+      <div ref={scrollContainerRef} className="flex-1 overflow-auto py-1">
         {/* Inline task creation input */}
         {isCreating && (
           <div className="flex items-center gap-3 p-3 border-b border-[#FF4D00] bg-[#FF4D00]/5">
@@ -1264,10 +1276,18 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
           <span className="text-[#666666]">+</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
           <span className="text-[#666666]">+</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">V</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">VOICE</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">R</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">RECORD</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ESC</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">CANCEL REC</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↑</kbd>
@@ -1284,14 +1304,10 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <span className="text-[#888888] text-xs font-mono uppercase">METADATA</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">1</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">2</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">3</kbd>
-          <span className="text-[#666666]">/</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">4</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">FILTER</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+          <span className="text-[#666666]">+</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">1-9</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">PROJECT (A-Z)</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">←</kbd>

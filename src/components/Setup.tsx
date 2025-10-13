@@ -17,6 +17,34 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
   const [showDirectoryAutocomplete, setShowDirectoryAutocomplete] = useState(false);
   const [loadingDirectories, setLoadingDirectories] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const pathInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+
+  // Scroll input to the end when path changes
+  useEffect(() => {
+    if (pathInputRef.current) {
+      // Scroll to the end to show the most relevant part (directory name)
+      pathInputRef.current.scrollLeft = pathInputRef.current.scrollWidth;
+    }
+  }, [projectPath]);
+
+  // Click outside to close autocomplete
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showDirectoryAutocomplete &&
+        pathInputRef.current &&
+        autocompleteRef.current &&
+        !pathInputRef.current.contains(event.target as Node) &&
+        !autocompleteRef.current.contains(event.target as Node)
+      ) {
+        setShowDirectoryAutocomplete(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDirectoryAutocomplete]);
 
   // Debounced directory search (200ms)
   useEffect(() => {
@@ -108,9 +136,29 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
   };
 
   const handleBrowse = async () => {
-    // For now, user enters path manually
-    // In production, we'd use dialog.showOpenDialog
-    alert('Please enter the project path manually for now');
+    try {
+      // Use current path as starting point, or undefined for default (home directory)
+      const result = await window.electronAPI.selectDirectory(projectPath || undefined);
+
+      if (result.success && result.path) {
+        setProjectPath(result.path);
+
+        // Auto-fill project name from directory name if not already set
+        if (!projectName) {
+          const dirName = result.path.split('/').filter(Boolean).pop();
+          if (dirName) {
+            setProjectName(dirName);
+          }
+        }
+
+        // Close autocomplete if open
+        setShowDirectoryAutocomplete(false);
+      }
+      // If canceled, do nothing (user clicked cancel button)
+    } catch (error) {
+      console.error('Failed to select directory:', error);
+      setError('Failed to open directory picker');
+    }
   };
 
   return (
@@ -200,8 +248,9 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
               Project Root Path
             </label>
             <div className="flex gap-2">
-              <div className="flex-1 relative">
+              <div className="flex-1 relative" ref={autocompleteRef}>
                 <input
+                  ref={pathInputRef}
                   id="projectPath"
                   type="text"
                   value={projectPath}

@@ -247,7 +247,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)]">
-      <div className="flex items-center justify-between p-3 border-b border-[#222222] drag-region bg-[#0A0A0A]">
+      <div className="flex items-center justify-between p-3 border-b border-[#222222] bg-[#0A0A0A]">
         <div className="flex items-center gap-3">
           <h2 className="text-xs font-mono text-[#E6E6E6] uppercase tracking-wider">
             [RAW INPUT]
@@ -305,6 +305,12 @@ Examples:
 
           {/* Keyboard shortcut hints */}
           <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#222222]">
+            <div className="keyboard-hint flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
+            </div>
             <div className="keyboard-hint flex items-center gap-2">
               <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
               <span className="text-[#666666]">+</span>

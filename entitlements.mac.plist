@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- CRITICAL: Allow JIT compilation for V8 JavaScript engine on Apple Silicon -->
+	<!-- Without this, Electron will crash with "Code Signature Invalid" on arm64 -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+
+	<!-- Allow unsigned executable memory for JIT compilation -->
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+
+	<!-- Allow app to access files outside its container -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- Allow reading and writing to user-selected files and directories -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+
+	<!-- Allow network access for API calls -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- Disable app sandboxing to allow full filesystem access -->
+	<!-- This is necessary for a task manager that needs to access project files anywhere -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+
+	<!-- Allow microphone access for voice input -->
+	<key>com.apple.security.device.microphone</key>
+	<true/>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>

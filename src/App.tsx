@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Mic, Loader2 } from "lucide-react";
+import { Mic, Loader2, FileText, ListTodo } from "lucide-react";
 import { Setup } from "./components/Setup";
 import { RawInput } from "./components/RawInput";
 import { TaskTree } from "./components/TaskTree";
@@ -33,6 +33,11 @@ function App() {
 
   // Use the projects hook for centralized project state management
   const { projects, refreshProjects } = useProjects();
+
+  // Create alphabetically sorted projects for persistent keyboard shortcuts
+  const alphabeticalProjects = [...projects].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   // Check if setup is complete on mount
   useEffect(() => {
@@ -132,12 +137,15 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Voice recording: CMD+SHIFT+V to start recording
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "v") {
+      // Voice recording: CMD+R to toggle recording (press once to start, again to stop)
+      if ((e.metaKey || e.ctrlKey) && e.key === "r" && !e.repeat) {
         e.preventDefault();
-        if (!isRecording && !isProcessing) {
-          handleVoiceStart();
-        }
+        handleVoiceToggle();
+      }
+      // ESC to cancel recording
+      if (e.key === "Escape" && isRecording) {
+        e.preventDefault();
+        handleVoiceCancel();
       }
       // Quick switcher: Cmd+K or Ctrl+K
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -156,23 +164,26 @@ function App() {
           handleOpenInNewWindow(projectName);
         }
       }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      // Stop recording when V key is released (most specific key in combo)
-      if (isRecording && (e.key === "v" || e.key === "V")) {
+      // Project switching: Cmd+1, Cmd+2, Cmd+3, etc. (up to 9, alphabetically)
+      if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
         e.preventDefault();
-        handleVoiceStop();
+        const projectIndex = parseInt(e.key, 10) - 1;
+        if (alphabeticalProjects[projectIndex] && alphabeticalProjects[projectIndex].name !== projectName) {
+          handleProjectSwitch(alphabeticalProjects[projectIndex].name);
+        }
+      }
+      // Toggle between raw and tasks view: Cmd+T
+      if ((e.metaKey || e.ctrlKey) && e.key === "t" && (tasks.length > 0 || view === "tasks")) {
+        e.preventDefault();
+        toggleView();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keyup", handleKeyUp);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
     };
-  }, [projectName, isRecording, isProcessing]);
+  }, [projectName, isRecording, isProcessing, projects, tasks, view]);
 
   // File watcher: Auto-reload tasks when external changes detected
   useEffect(() => {
@@ -365,6 +376,18 @@ function App() {
     await window.electronAPI.closeWindow();
   };
 
+  const handleVoiceToggle = async () => {
+    if (isProcessing) return; // Don't allow toggle while processing
+
+    if (isRecording) {
+      // Stop recording and process
+      await handleVoiceStop();
+    } else {
+      // Start recording
+      await handleVoiceStart();
+    }
+  };
+
   const handleVoiceStart = async () => {
     // Check if OpenAI is configured
     const settings = await window.electronAPI.getSettings();
@@ -377,7 +400,7 @@ function App() {
   };
 
   const handleVoiceStop = async () => {
-    // Don't process if not recording (prevents duplicate calls from onMouseUp + onMouseLeave)
+    // Don't process if not recording
     if (!isRecording) return;
 
     setIsProcessing(true);
@@ -412,6 +435,13 @@ function App() {
       alert(`Voice processing failed: ${error.message}`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleVoiceCancel = async () => {
+    if (isRecording) {
+      await stopRecording();
+      // Don't process the audio, just stop recording
     }
   };
 
@@ -576,16 +606,15 @@ function App() {
           {(tasks.length > 0 || view === "tasks") && (
             <button
               onClick={toggleView}
-              className="h-[28px] w-[56px] flex items-center justify-center text-xs leading-none font-mono uppercase tracking-wider border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+              className="h-[28px] w-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+              title={view === "raw" ? "Switch to tasks view (Cmd+T)" : "Switch to raw view (Cmd+T)"}
             >
-              {view === "raw" ? "TASKS" : "RAW"}
+              {view === "raw" ? <ListTodo size={16} /> : <FileText size={16} />}
             </button>
           )}
           {/* Voice Recording Button */}
           <button
-            onMouseDown={handleVoiceStart}
-            onMouseUp={handleVoiceStop}
-            onMouseLeave={handleVoiceStop}
+            onClick={handleVoiceToggle}
             disabled={isProcessing}
             className={`w-[28px] h-[28px] flex items-center justify-center border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
               isRecording
@@ -594,7 +623,7 @@ function App() {
                 ? 'bg-[#333333] border-[#444444] text-[#888888]'
                 : 'border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]'
             }`}
-            title="Hold to record voice input (Cmd+Shift+V)"
+            title={isRecording ? "Stop recording (Cmd+R or ESC)" : "Start recording (Cmd+R)"}
           >
             {isProcessing ? (
               <Loader2 size={14} className="animate-spin" />

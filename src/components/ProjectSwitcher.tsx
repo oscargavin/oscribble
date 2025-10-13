@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, ChevronUp, ExternalLink, Trash2, Plus } from 'lucide-react';
 import { ProjectSettings } from '../types';
 
 interface ProjectSwitcherProps {
@@ -20,6 +21,24 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sort projects: current first, then alphabetically
+  const sortedProjects = [...projects].sort((a, b) => {
+    if (a.name === currentProject) return -1;
+    if (b.name === currentProject) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Create alphabetical projects list for hotkey mapping
+  const alphabeticalProjects = [...projects].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  // Get hotkey number for a project (1-9 based on alphabetical order)
+  const getHotkeyNumber = (projectName: string): number | null => {
+    const index = alphabeticalProjects.findIndex(p => p.name === projectName);
+    return index >= 0 && index < 9 ? index + 1 : null;
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -75,64 +94,79 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2 py-1 text-xs text-[var(--text-primary)] hover:opacity-70 transition-opacity border border-[var(--text-dim)]"
+        className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[#0A0A0A] transition-colors border border-[var(--text-dim)] hover:border-[#FF4D00]"
       >
         <span className="font-mono">{currentProject}</span>
-        <span className="text-[var(--text-dim)]">{isOpen ? '▲' : '▼'}</span>
+        {isOpen ? (
+          <ChevronUp size={14} className="text-[var(--text-dim)]" />
+        ) : (
+          <ChevronDown size={14} className="text-[var(--text-dim)]" />
+        )}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-72 bg-black border border-[var(--text-primary)] z-50 max-h-80 overflow-y-auto no-drag">
-          {projects && projects.length > 0 ? projects.map((project) => (
+        <div className="absolute top-full left-0 mt-1 w-72 bg-black border border-[var(--text-primary)] z-[100] max-h-80 overflow-y-auto no-drag">
+          {sortedProjects && sortedProjects.length > 0 ? sortedProjects.map((project) => {
+            const hotkeyNumber = getHotkeyNumber(project.name);
+            return (
             <div
               key={project.name}
-              className={`relative group flex items-center justify-between px-3 py-2 text-xs transition-all cursor-pointer border-b border-[var(--text-dim)]/30 last:border-0 ${
+              className={`relative group flex items-center justify-between px-3 py-2.5 text-xs transition-all cursor-pointer border-b border-[var(--text-dim)]/30 last:border-0 ${
                 project.name === currentProject
                   ? 'bg-[#0A0A0A] text-[var(--text-primary)] border-l-2 border-l-[#FF4D00] pl-[10px]'
                   : 'text-[var(--text-primary)] hover:bg-[#0A0A0A]'
               }`}
               onClick={() => handleSelect(project.name)}
             >
-              <span className="flex-1 font-mono truncate pr-2">{project.name}</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {hotkeyNumber && (
+                  <span className="text-[10px] text-[var(--text-dim)] font-mono w-4 text-center flex-shrink-0">
+                    {hotkeyNumber}
+                  </span>
+                )}
+                <span className="font-mono truncate">{project.name}</span>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
                 {onOpenInNewWindow && project.name !== currentProject && (
                   <button
                     onClick={(e) => handleOpenInNewWindow(e, project.name)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[#FF4D00] hover:opacity-70 z-10"
+                    className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-[#FF4D00]/10 text-[var(--text-dim)] hover:text-[#FF4D00] z-10"
                     title="Open in new window"
                   >
-                    ⧉
+                    <ExternalLink size={14} />
                   </button>
                 )}
                 {onDelete && (
                   <button
                     onClick={(e) => handleDelete(e, project.name)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[#FF4D00] hover:opacity-70 z-10"
+                    className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-red-600/10 text-[var(--text-dim)] hover:text-red-600 z-10"
                     title="Delete project"
                   >
-                    🗑
+                    <Trash2 size={14} />
                   </button>
                 )}
-                <span className="text-[var(--text-dim)] text-[10px] uppercase tracking-wider">
+                <span className="text-[var(--text-dim)] text-[10px] uppercase tracking-wider ml-1">
                   {formatLastAccessed(project.last_accessed)}
                 </span>
               </div>
             </div>
-          )) : (
+          );
+          }) : (
             <div className="px-3 py-2 text-xs text-[var(--text-dim)] text-center">
               no projects found
             </div>
           )}
 
-          <div className="border-t border-[var(--text-dim)] mt-1 pt-1">
+          <div className="border-t border-[var(--text-dim)]">
             <button
               onClick={() => {
                 setIsOpen(false);
                 onNewProject();
               }}
-              className="w-full px-3 py-2 text-left text-xs text-[#FF4D00] hover:opacity-70 transition-opacity uppercase tracking-wider"
+              className="w-full px-3 py-2.5 text-left text-xs text-[#FF4D00] hover:bg-[#FF4D00]/10 transition-colors uppercase tracking-wider flex items-center gap-2"
             >
-              + New Project
+              <Plus size={14} />
+              <span>New Project</span>
             </button>
           </div>
         </div>

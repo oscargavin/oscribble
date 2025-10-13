@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { StorageService } from './services/storage';
 import { ContextService } from './services/context';
 import { ClaudeService } from './services/claude';
@@ -444,6 +444,39 @@ ipcMain.handle('get-directory-suggestions', async (_, partialPath: string) => {
   } catch (error) {
     console.error('Directory suggestions error:', error);
     return { success: false, error: error.message, directories: [] };
+  }
+});
+
+// Select directory using native OS dialog
+ipcMain.handle('select-directory', async (event, defaultPath?: string) => {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) {
+      return { success: false, error: 'Window not found' };
+    }
+
+    // Expand ~ to home directory if provided
+    let startPath = defaultPath;
+    if (startPath && startPath.startsWith('~')) {
+      startPath = startPath.replace('~', os.homedir());
+    }
+
+    const result = await dialog.showOpenDialog(window, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Select Project Root Directory',
+      defaultPath: startPath || os.homedir(),
+      buttonLabel: 'Select',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    // Return the selected directory path
+    return { success: true, path: result.filePaths[0] };
+  } catch (error) {
+    console.error('Directory selection error:', error);
+    return { success: false, error: error.message };
   }
 });
 

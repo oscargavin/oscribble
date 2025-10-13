@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-project-files', projectRoot),
   getDirectorySuggestions: (partialPath: string) =>
     ipcRenderer.invoke('get-directory-suggestions', partialPath),
+  selectDirectory: (defaultPath?: string) =>
+    ipcRenderer.invoke('select-directory', defaultPath),
   openProjectWindow: (projectName: string) =>
     ipcRenderer.invoke('open-project-window', projectName),
   closeWindow: () => ipcRenderer.invoke('close-window'),
