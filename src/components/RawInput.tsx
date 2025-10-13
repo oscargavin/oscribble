@@ -88,13 +88,15 @@ export const RawInput: React.FC<RawInputProps> = ({
         setSaving(true);
         try {
           await window.electronAPI.saveRaw(projectName, rawText);
+          // Keep the indicator visible for a brief period after save completes
+          await new Promise(resolve => setTimeout(resolve, 800));
         } catch (error) {
           console.error('Failed to save:', error);
         } finally {
           setSaving(false);
         }
       }
-    }, 500);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [rawText, projectName, initialValue]);
