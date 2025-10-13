@@ -3,10 +3,16 @@ import { TaskNode } from '../types';
 import { Checkbox } from './ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
 
+type FilterMode = 'all' | 'unchecked' | 'complete' | 'critical' | 'blocked';
+
 interface TaskTreeProps {
   tasks: TaskNode[];
   onUpdate: (tasks: TaskNode[]) => void;
   projectRoot: string;
+  filterMode: FilterMode;
+  setFilterMode: (mode: FilterMode) => void;
+  showContextFiles: Set<string>;
+  setShowContextFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 interface RelationshipEditorProps {
@@ -180,11 +186,15 @@ interface TaskRowProps {
   onFormat: (id: string) => void;
   onFocus: (id: string) => void;
   isFocused: boolean;
+  isSelected: boolean;
+  isFirstSelected?: boolean;
+  isLastSelected?: boolean;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
   expandedTasks: Set<string>;
   isFormattingTaskId: string | null;
   depth?: number;
+  showContextFiles: Set<string>;
 }
 
 const TaskRow: React.FC<TaskRowProps> = ({
@@ -197,11 +207,15 @@ const TaskRow: React.FC<TaskRowProps> = ({
   onFormat,
   onFocus,
   isFocused,
+  isSelected,
+  isFirstSelected = false,
+  isLastSelected = false,
   isExpanded,
   onToggleExpand,
   expandedTasks,
   isFormattingTaskId,
   depth = 0,
+  showContextFiles,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
@@ -364,14 +378,41 @@ const TaskRow: React.FC<TaskRowProps> = ({
 
   const isRawTask = task.metadata?.formatted === false;
 
+  // Build selection border classes for continuous rectangle effect
+  const getSelectionBorderClasses = () => {
+    if (!isSelected) return '';
+
+    const classes = ['bg-[#FF4D00]/10'];
+
+    // Single selected task gets full border
+    if (isFirstSelected && isLastSelected) {
+      classes.push('border-2 border-[#FF4D00]');
+    } else {
+      // Left and right borders always present when selected
+      classes.push('border-l-2 border-l-[#FF4D00]', 'border-r-2 border-r-[#FF4D00]');
+
+      // Top border only on first selected
+      if (isFirstSelected) {
+        classes.push('border-t-2 border-t-[#FF4D00]');
+      }
+
+      // Bottom border only on last selected
+      if (isLastSelected) {
+        classes.push('border-b-2 border-b-[#FF4D00]');
+      }
+    }
+
+    return classes.join(' ');
+  };
+
   return (
     <>
     <div
       data-task-id={task.id}
-      className={`flex items-start gap-3 p-3 border-b border-[#111111] hover:bg-[#0A0A0A] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused ? 'border border-[#FF4D00] bg-[#FF4D00]/5' : ''}`}
+      className={`flex items-start gap-3 p-3 ${!isSelected ? 'border-b border-[#111111]' : ''} hover:bg-[#0A0A0A] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused ? 'border border-[#FF4D00] bg-[#FF4D00]/5' : ''} ${getSelectionBorderClasses()}`}
       style={{
         marginLeft: `${(task.indent + depth) * 20}px`,
-        borderLeft: !isFocused && (task.indent + depth) > 0 ? '1px solid #222222' : undefined,
+        borderLeft: !isFocused && !isSelected && (task.indent + depth) > 0 ? '1px solid #222222' : undefined,
         minHeight: isRawTask ? '96px' : undefined, // Extra height for raw tasks to fit buttons below badges
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -549,6 +590,19 @@ const TaskRow: React.FC<TaskRowProps> = ({
               ))}
             </div>
           )}
+          {showContextFiles.has(task.id) && task.metadata?.context_files && task.metadata.context_files.length > 0 && (
+            <div className="mt-1 text-xs text-[#666666] pl-4 font-mono border-l border-[#444444]">
+              <div className="font-bold text-[#888888] uppercase tracking-wider mb-1">[CONTEXT FILES]</div>
+              {task.metadata.context_files.map((file, i) => (
+                <div key={i} className="ml-2 text-[#666666]">
+                  • {file.path}
+                  {file.wasGrepped && file.matchedKeywords && (
+                    <span className="text-[#555555]"> (grep: {file.matchedKeywords.join(', ')})</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -714,11 +768,15 @@ const TaskRow: React.FC<TaskRowProps> = ({
             onFormat={onFormat}
             onFocus={onFocus}
             isFocused={false}
+            isSelected={false}
+            isFirstSelected={false}
+            isLastSelected={false}
             isExpanded={expandedTasks.has(subtask.id)}
             onToggleExpand={onToggleExpand}
             expandedTasks={expandedTasks}
             isFormattingTaskId={isFormattingTaskId}
             depth={depth + 1}
+            showContextFiles={showContextFiles}
           />
         ))}
       </>
@@ -727,13 +785,11 @@ const TaskRow: React.FC<TaskRowProps> = ({
   );
 };
 
-type FilterMode = 'all' | 'unchecked' | 'critical' | 'blocked';
-
-export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot }) => {
+export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, filterMode, setFilterMode, showContextFiles, setShowContextFiles }) => {
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingRelationshipsTaskId, setEditingRelationshipsTaskId] = useState<string | null>(null);
   const [formattingTaskId, setFormattingTaskId] = useState<string | null>(null);
@@ -741,6 +797,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const newTaskInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskCountRef = useRef(tasks.length);
+  const navigationScheduledRef = useRef<number | null>(null);
 
   // Flatten tasks for navigation
   const flattenTasks = (taskList: TaskNode[], currentExpanded: Set<string> = expandedTasks): TaskNode[] => {
@@ -764,6 +821,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
     switch (filterMode) {
       case 'unchecked':
         return taskList.filter(task => !task.checked);
+      case 'complete':
+        return taskList.filter(task => task.checked);
       case 'critical':
         return taskList.filter(task => task.metadata?.priority === 'critical');
       case 'blocked':
@@ -829,10 +888,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
 
   // Clear all tasks
   const clearAllTasks = () => {
-    if (window.confirm('Are you sure you want to clear all tasks?')) {
-      onUpdate([]);
-      setFocusedTaskId(null);
-    }
+    onUpdate([]);
+    setFocusedTaskId(null);
   };
 
   // Toggle expand/collapse for subtasks
@@ -854,6 +911,33 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       // Only handle shortcuts when container is mounted and not in an input
       if (!containerRef.current) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      // Number keys to switch filter mode
+      if (e.key === '1') {
+        e.preventDefault();
+        setFilterMode('all');
+        return;
+      }
+      if (e.key === '2') {
+        e.preventDefault();
+        setFilterMode('unchecked');
+        return;
+      }
+      if (e.key === '3') {
+        e.preventDefault();
+        setFilterMode('complete');
+        return;
+      }
+      if (e.key === '4') {
+        e.preventDefault();
+        setFilterMode('critical');
+        return;
+      }
+      if (e.key === '5') {
+        e.preventDefault();
+        setFilterMode('blocked');
+        return;
+      }
 
       // N key to create new task
       if (e.key === 'n' || e.key === 'N') {
@@ -894,38 +978,95 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       // Arrow navigation (use displayTasks for filtered navigation)
       else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (!focusedTaskId && displayTasks.length > 0) {
-          setFocusedTaskId(displayTasks[0].id);
-        } else if (focusedTaskId) {
-          const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
-          if (currentIndex < displayTasks.length - 1) {
-            setFocusedTaskId(displayTasks[currentIndex + 1].id);
-          } else {
-            // Wrap around to the top
-            setFocusedTaskId(displayTasks[0].id);
-          }
+
+        // Cancel any pending navigation
+        if (navigationScheduledRef.current !== null) {
+          cancelAnimationFrame(navigationScheduledRef.current);
         }
+
+        // Schedule navigation for next frame to throttle rapid keypresses
+        navigationScheduledRef.current = requestAnimationFrame(() => {
+          if (!focusedTaskId && displayTasks.length > 0) {
+            setFocusedTaskId(displayTasks[0].id);
+            if (!e.shiftKey) {
+              setSelectedTaskIds(new Set());
+            }
+          } else if (focusedTaskId) {
+            const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
+            const nextIndex = currentIndex < displayTasks.length - 1 ? currentIndex + 1 : 0;
+            const nextTaskId = displayTasks[nextIndex].id;
+
+            if (e.shiftKey) {
+              // Extend selection
+              setSelectedTaskIds(prev => {
+                const newSet = new Set(prev);
+                // Always include the focused task in selection
+                newSet.add(focusedTaskId);
+                newSet.add(nextTaskId);
+                return newSet;
+              });
+            } else {
+              // Clear selection when moving without shift
+              setSelectedTaskIds(new Set());
+            }
+
+            setFocusedTaskId(nextTaskId);
+          }
+          navigationScheduledRef.current = null;
+        });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (focusedTaskId) {
-          const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
-          if (currentIndex > 0) {
-            setFocusedTaskId(displayTasks[currentIndex - 1].id);
-          } else {
-            // Wrap around to the bottom
-            setFocusedTaskId(displayTasks[displayTasks.length - 1].id);
-          }
+
+        // Cancel any pending navigation
+        if (navigationScheduledRef.current !== null) {
+          cancelAnimationFrame(navigationScheduledRef.current);
         }
+
+        // Schedule navigation for next frame to throttle rapid keypresses
+        navigationScheduledRef.current = requestAnimationFrame(() => {
+          if (focusedTaskId) {
+            const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : displayTasks.length - 1;
+            const prevTaskId = displayTasks[prevIndex].id;
+
+            if (e.shiftKey) {
+              // Extend selection
+              setSelectedTaskIds(prev => {
+                const newSet = new Set(prev);
+                // Always include the focused task in selection
+                newSet.add(focusedTaskId);
+                newSet.add(prevTaskId);
+                return newSet;
+              });
+            } else {
+              // Clear selection when moving without shift
+              setSelectedTaskIds(new Set());
+            }
+
+            setFocusedTaskId(prevTaskId);
+          }
+          navigationScheduledRef.current = null;
+        });
       }
       // Space to toggle
       else if (e.key === ' ' && focusedTaskId) {
         e.preventDefault();
-        handleToggle(focusedTaskId);
+        // Toggle selected tasks if any are selected, otherwise toggle focused task
+        if (selectedTaskIds.size > 0) {
+          handleBatchToggle();
+        } else {
+          handleToggle(focusedTaskId);
+        }
       }
       // Delete key
       else if ((e.key === 'Delete' || e.key === 'Backspace') && focusedTaskId) {
         e.preventDefault();
-        handleDelete(focusedTaskId);
+        // Delete selected tasks if any are selected, otherwise delete focused task
+        if (selectedTaskIds.size > 0) {
+          handleBatchDelete();
+        } else {
+          handleDelete(focusedTaskId);
+        }
       }
       // Cmd+C to copy focused task
       else if ((e.metaKey || e.ctrlKey) && e.key === 'c' && focusedTaskId && !e.shiftKey) {
@@ -953,6 +1094,36 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         if (task && task.metadata?.formatted === false) {
           handleFormat(focusedTaskId);
         }
+      }
+      // Cmd+O to toggle context files visibility for focused/selected tasks
+      else if ((e.metaKey || e.ctrlKey) && e.key === 'o' && focusedTaskId) {
+        e.preventDefault();
+        setShowContextFiles(prev => {
+          const newSet = new Set(prev);
+
+          // If there are selected tasks, toggle all of them
+          if (selectedTaskIds.size > 0) {
+            // Check if all selected tasks are currently visible
+            const allVisible = Array.from(selectedTaskIds).every(id => newSet.has(id));
+
+            if (allVisible) {
+              // Hide all selected tasks
+              selectedTaskIds.forEach(id => newSet.delete(id));
+            } else {
+              // Show all selected tasks
+              selectedTaskIds.forEach(id => newSet.add(id));
+            }
+          } else {
+            // No selection, toggle just the focused task
+            if (newSet.has(focusedTaskId)) {
+              newSet.delete(focusedTaskId);
+            } else {
+              newSet.add(focusedTaskId);
+            }
+          }
+
+          return newSet;
+        });
       }
     };
 
@@ -1070,6 +1241,51 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       });
     };
     onUpdate(deleteRecursive(tasks));
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedTaskIds.size === 0) return;
+
+    const deleteRecursive = (taskList: TaskNode[]): TaskNode[] => {
+      return taskList.filter((task) => {
+        if (selectedTaskIds.has(task.id)) {
+          return false;
+        }
+        if (task.children.length > 0) {
+          task.children = deleteRecursive(task.children);
+        }
+        if (task.subtasks && task.subtasks.length > 0) {
+          task.subtasks = deleteRecursive(task.subtasks);
+        }
+        return true;
+      });
+    };
+
+    onUpdate(deleteRecursive(tasks));
+    setSelectedTaskIds(new Set());
+    setFocusedTaskId(null);
+  };
+
+  const handleBatchToggle = () => {
+    if (selectedTaskIds.size === 0) return;
+
+    const toggleRecursive = (taskList: TaskNode[]): TaskNode[] => {
+      return taskList.map((task) => {
+        if (selectedTaskIds.has(task.id)) {
+          return { ...task, checked: !task.checked };
+        }
+        if (task.children.length > 0) {
+          return { ...task, children: toggleRecursive(task.children) };
+        }
+        if (task.subtasks && task.subtasks.length > 0) {
+          return { ...task, subtasks: toggleRecursive(task.subtasks) };
+        }
+        return task;
+      });
+    };
+
+    onUpdate(toggleRecursive(tasks));
+    setSelectedTaskIds(new Set());
   };
 
   const handleMetadataChange = (id: string, metadata: TaskNode['metadata']) => {
@@ -1260,28 +1476,45 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           </div>
         )}
 
-        {displayTasks.map((task) => (
-          <TaskRow
-            key={task.id}
-            task={task}
-            onToggle={handleToggle}
-            onTextChange={handleTextChange}
-            onIndentChange={handleIndentChange}
-            onDelete={handleDelete}
-            onMetadataChange={handleMetadataChange}
-            onFormat={handleFormat}
-            onFocus={setFocusedTaskId}
-            isFocused={task.id === focusedTaskId}
-            isExpanded={expandedTasks.has(task.id)}
-            onToggleExpand={handleToggleExpand}
-            expandedTasks={expandedTasks}
-            isFormattingTaskId={formattingTaskId}
-          />
-        ))}
+        {displayTasks.map((task, index) => {
+          // Determine if this is the first or last selected task in display order
+          const selectedIndices = displayTasks
+            .map((t, i) => (selectedTaskIds.has(t.id) ? i : -1))
+            .filter(i => i !== -1);
+          const firstSelectedIndex = selectedIndices[0];
+          const lastSelectedIndex = selectedIndices[selectedIndices.length - 1];
+
+          return (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onToggle={handleToggle}
+              onTextChange={handleTextChange}
+              onIndentChange={handleIndentChange}
+              onDelete={handleDelete}
+              onMetadataChange={handleMetadataChange}
+              onFormat={handleFormat}
+              onFocus={setFocusedTaskId}
+              isFocused={task.id === focusedTaskId}
+              isSelected={selectedTaskIds.has(task.id)}
+              isFirstSelected={index === firstSelectedIndex}
+              isLastSelected={index === lastSelectedIndex}
+              isExpanded={expandedTasks.has(task.id)}
+              onToggleExpand={handleToggleExpand}
+              expandedTasks={expandedTasks}
+              isFormattingTaskId={formattingTaskId}
+              showContextFiles={showContextFiles}
+            />
+          );
+        })}
       </div>
 
       {/* Keyboard shortcut hints */}
       <div className="flex items-center gap-4 p-3 border-t border-[#222222] overflow-x-auto flex-nowrap bg-[#0A0A0A]">
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">1-5</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">FILTER</span>
+        </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">N</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">NEW</span>
@@ -1291,6 +1524,12 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <span className="text-[#666666]">+</span>
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+          <span className="text-[#666666]">+</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
@@ -1307,6 +1546,14 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <span className="text-[#666666]">/</span>
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↓</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">NAV</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+          <span className="text-[#666666]">+</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↑</kbd>
+          <span className="text-[#666666]">/</span>
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↓</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">SELECT</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SPACE</kbd>

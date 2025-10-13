@@ -5,7 +5,7 @@ interface RawInputProps {
   initialValue: string;
   projectName: string;
   projectRoot: string;
-  onFormat: (rawText: string, contextStr: string, isVoiceInput?: boolean) => Promise<void>;
+  onFormat: (rawText: string, contextStr: string, isVoiceInput?: boolean, contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]) => Promise<void>;
 }
 
 export const RawInput: React.FC<RawInputProps> = ({
@@ -38,6 +38,13 @@ export const RawInput: React.FC<RawInputProps> = ({
     };
     loadFiles();
   }, [projectRoot]);
+
+  // Auto-focus textarea on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   // Detect @mentions
   const mentions = useMemo(() => {
@@ -93,6 +100,13 @@ export const RawInput: React.FC<RawInputProps> = ({
     const textarea = e.currentTarget;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+
+    // Cmd+L to clear all text
+    if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+      e.preventDefault();
+      setRawText('');
+      return;
+    }
 
     // Shift+Enter to format
     if (e.shiftKey && e.key === 'Enter') {
@@ -238,6 +252,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
       // Format gathered context for Claude
       let contextString = '';
+      let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
       if (contextResult.data) {
         const gc = contextResult.data;
         contextString = gc.files.map(f => {
@@ -247,10 +262,17 @@ export const RawInput: React.FC<RawInputProps> = ({
           return `${header}\n${f.content}`;
         }).join('\n\n');
 
+        // Extract file metadata for storage with tasks
+        contextFiles = gc.files.map(f => ({
+          path: f.path,
+          wasGrepped: f.wasGrepped,
+          matchedKeywords: f.matchedKeywords
+        }));
+
         console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
       }
 
-      await onFormat(rawText, contextString);
+      await onFormat(rawText, contextString, false, contextFiles);
     } catch (error) {
       console.error('Format error:', error);
       alert(`Failed to format: ${error.message}`);
@@ -291,61 +313,29 @@ export const RawInput: React.FC<RawInputProps> = ({
       </div>
 
       <div className="flex-1 p-4 overflow-auto relative">
-        <div className="relative h-full flex flex-col">
-          <div className="relative flex-1">
-            {/* Background formatting layer */}
-            <div className="formatted-background">
-              {renderFormattedBackground()}
-            </div>
+        <div className="relative h-full">
+          {/* Background formatting layer */}
+          <div className="formatted-background">
+            {renderFormattedBackground()}
+          </div>
 
-            {/* Foreground textarea */}
-            <textarea
-              ref={textareaRef}
-              value={rawText}
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-              disabled={formatting}
-              placeholder="Enter your tasks here...
+          {/* Foreground textarea */}
+          <textarea
+            ref={textareaRef}
+            value={rawText}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            disabled={formatting}
+            placeholder="Enter your tasks here...
 
 Examples:
 - Fix login bug
 - Optimize database queries
 - Type @ to mention files
 - Add tests for auth flow"
-              className="raw-input-textarea"
-              spellCheck={false}
-            />
-          </div>
-
-          {/* Keyboard shortcut hints */}
-          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#222222]">
-            <div className="keyboard-hint flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
-            </div>
-            <div className="keyboard-hint flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">FORMAT</span>
-            </div>
-            <div className="keyboard-hint flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">INDENT</span>
-            </div>
-            <div className="keyboard-hint flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">UNINDENT</span>
-            </div>
-            <div className="keyboard-hint flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#FF4D00] text-[#FF4D00] text-xs font-mono bg-transparent min-w-[32px] text-center">@</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">MENTION</span>
-            </div>
-          </div>
+            className="raw-input-textarea"
+            spellCheck={false}
+          />
         </div>
 
         {showAutocomplete && (
@@ -356,6 +346,48 @@ Examples:
             onClose={() => setShowAutocomplete(false)}
           />
         )}
+      </div>
+
+      {/* Keyboard shortcut hints */}
+      <div className="flex items-center gap-4 p-3 border-t border-[#222222] overflow-x-auto flex-nowrap bg-[#0A0A0A]">
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">L</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">CLEAR</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">FORMAT</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">INDENT</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">UNINDENT</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#FF4D00] text-[#FF4D00] text-xs font-mono bg-transparent min-w-[32px] text-center">@</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">MENTION</span>
+            </div>
       </div>
 
       {mentions.length > 0 && (

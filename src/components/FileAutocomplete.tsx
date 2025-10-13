@@ -15,6 +15,7 @@ export const FileAutocomplete: React.FC<FileAutocompleteProps> = ({
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigationScheduledRef = useRef<number | null>(null);
 
   // Filter files based on query
   const filteredFiles = files
@@ -35,12 +36,32 @@ export const FileAutocomplete: React.FC<FileAutocompleteProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < filteredFiles.length - 1 ? prev + 1 : prev
-        );
+
+        // Cancel any pending navigation
+        if (navigationScheduledRef.current !== null) {
+          cancelAnimationFrame(navigationScheduledRef.current);
+        }
+
+        // Schedule navigation for next frame to throttle rapid keypresses
+        navigationScheduledRef.current = requestAnimationFrame(() => {
+          setSelectedIndex((prev) =>
+            prev < filteredFiles.length - 1 ? prev + 1 : prev
+          );
+          navigationScheduledRef.current = null;
+        });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+
+        // Cancel any pending navigation
+        if (navigationScheduledRef.current !== null) {
+          cancelAnimationFrame(navigationScheduledRef.current);
+        }
+
+        // Schedule navigation for next frame to throttle rapid keypresses
+        navigationScheduledRef.current = requestAnimationFrame(() => {
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+          navigationScheduledRef.current = null;
+        });
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filteredFiles[selectedIndex]) {

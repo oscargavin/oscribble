@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Mic, Loader2, FileText, ListTodo } from "lucide-react";
+import { Mic, Loader2, FileText, ListTodo, Circle, Check, AlertCircle, Ban, List } from "lucide-react";
 import { Setup } from "./components/Setup";
 import { RawInput } from "./components/RawInput";
 import { TaskTree } from "./components/TaskTree";
@@ -12,6 +12,7 @@ import { useProjects } from "./hooks/useProjects";
 import { useVoiceRecording } from "./hooks/useVoiceRecording";
 
 type View = "setup" | "raw" | "tasks";
+type FilterMode = 'all' | 'unchecked' | 'complete' | 'critical' | 'blocked';
 
 function App() {
   const [view, setView] = useState<View>("setup");
@@ -23,9 +24,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showQuickSwitcher, setShowQuickSwitcher] = useState(false);
+  const [showContextFiles, setShowContextFiles] = useState<Set<string>>(new Set());
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
   // Voice recording state
   const { isRecording, startRecording, stopRecording } = useVoiceRecording();
@@ -429,6 +432,7 @@ function App() {
 
       // Format gathered context for Claude
       let contextString = '';
+      let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
       if (contextResult.success && contextResult.data) {
         const gc = contextResult.data;
         contextString = gc.files.map(f => {
@@ -438,11 +442,18 @@ function App() {
           return `${header}\n${f.content}`;
         }).join('\n\n');
 
+        // Extract file metadata for storage with tasks
+        contextFiles = gc.files.map(f => ({
+          path: f.path,
+          wasGrepped: f.wasGrepped,
+          matchedKeywords: f.matchedKeywords
+        }));
+
         console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
       }
 
       // Format with Claude (with voice input flag)
-      await handleFormat(transcript, contextString, true);
+      await handleFormat(transcript, contextString, true, contextFiles);
     } catch (error) {
       console.error('Voice processing error:', error);
       alert(`Voice processing failed: ${error.message}`);
@@ -461,7 +472,8 @@ function App() {
   const handleFormat = async (
     rawText: string,
     contextStr: string,
-    isVoiceInput: boolean = false
+    isVoiceInput: boolean = false,
+    contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]
   ) => {
     try {
       let textToFormat = rawText;
@@ -524,6 +536,7 @@ function App() {
               effort_estimate: task.effort_estimate,
               tags: task.tags,
               formatted: true, // Task has been analyzed by Claude
+              context_files: contextFiles, // Files that were analyzed for this task
             },
           });
         }
@@ -579,6 +592,33 @@ function App() {
     setView(view === "raw" ? "tasks" : "raw");
   };
 
+  const cycleFilterMode = () => {
+    const modes: FilterMode[] = ['all', 'unchecked', 'complete', 'critical', 'blocked'];
+    const currentIndex = modes.indexOf(filterMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setFilterMode(modes[nextIndex]);
+  };
+
+  const getFilterIcon = () => {
+    switch (filterMode) {
+      case 'all': return <List size={14} />;
+      case 'unchecked': return <Circle size={14} />;
+      case 'complete': return <Check size={14} />;
+      case 'critical': return <AlertCircle size={14} />;
+      case 'blocked': return <Ban size={14} />;
+    }
+  };
+
+  const getFilterTitle = () => {
+    switch (filterMode) {
+      case 'all': return 'All tasks (1)';
+      case 'unchecked': return 'Incomplete tasks (2)';
+      case 'complete': return 'Complete tasks (3)';
+      case 'critical': return 'Critical tasks (4)';
+      case 'blocked': return 'Blocked tasks (5)';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[var(--bg-primary)]">
@@ -615,7 +655,17 @@ function App() {
           />
         </div>
         <div className="flex items-center gap-3 no-drag">
-          {/* Toggle button - placed first to prevent layout shifts */}
+          {/* Filter Button - only show when in tasks view */}
+          {view === "tasks" && (
+            <button
+              onClick={cycleFilterMode}
+              className="w-[28px] h-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+              title={getFilterTitle()}
+            >
+              {getFilterIcon()}
+            </button>
+          )}
+          {/* Toggle button - placed after filter to prevent layout shifts */}
           {(tasks.length > 0 || view === "tasks") && (
             <button
               onClick={toggleView}
@@ -672,7 +722,15 @@ function App() {
           />
         )}
         {view === "tasks" && (
-          <TaskTree tasks={tasks} onUpdate={handleTaskUpdate} projectRoot={projectRoot} />
+          <TaskTree
+            tasks={tasks}
+            onUpdate={handleTaskUpdate}
+            projectRoot={projectRoot}
+            filterMode={filterMode}
+            setFilterMode={setFilterMode}
+            showContextFiles={showContextFiles}
+            setShowContextFiles={setShowContextFiles}
+          />
         )}
       </div>
 

@@ -3,6 +3,7 @@ import { StorageService } from './services/storage';
 import { ContextService } from './services/context';
 import { ClaudeService } from './services/claude';
 import { OpenAIService } from './services/openai';
+import AutoContextService from './services/auto-context';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -56,7 +57,6 @@ function startWatchingProject(window: BrowserWindow, projectName: string) {
     });
 
     fileWatchers.set(window, { watcher, timeout: null, projectName });
-    console.log(`Started watching notes.json for project: ${projectName}`);
   } catch (error) {
     console.error(`Failed to watch notes.json for ${projectName}:`, error);
   }
@@ -73,7 +73,6 @@ function stopWatchingProject(window: BrowserWindow) {
       clearTimeout(watcherData.timeout);
     }
     fileWatchers.delete(window);
-    console.log(`Stopped watching notes.json for project: ${watcherData.projectName}`);
   }
 }
 
@@ -156,6 +155,8 @@ app.on('activate', () => {
 ipcMain.handle('init-claude', async (_, apiKey: string) => {
   try {
     claudeService = new ClaudeService(apiKey);
+    // Initialize AutoContextService with the same API key
+    AutoContextService.initClaude(apiKey);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

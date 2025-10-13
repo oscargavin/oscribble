@@ -15,6 +15,11 @@ export interface TaskNode {
     effort_estimate?: string; // e.g., "2h", "1d", "3 days"
     tags?: string[];       // Categorical tags
     formatted?: boolean;   // Whether task has been analyzed by Claude
+    context_files?: {      // Files that were analyzed to create this task
+      path: string;
+      wasGrepped?: boolean;
+      matchedKeywords?: string[];
+    }[];
   };
 }
 

@@ -13,6 +13,7 @@ export const DirectoryAutocomplete: React.FC<DirectoryAutocompleteProps> = ({
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigationScheduledRef = useRef<number | null>(null);
 
   // Format path to show last part
   const formatPath = (path: string) => {
@@ -30,12 +31,32 @@ export const DirectoryAutocomplete: React.FC<DirectoryAutocompleteProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < directories.length - 1 ? prev + 1 : prev
-        );
+
+        // Cancel any pending navigation
+        if (navigationScheduledRef.current !== null) {
+          cancelAnimationFrame(navigationScheduledRef.current);
+        }
+
+        // Schedule navigation for next frame to throttle rapid keypresses
+        navigationScheduledRef.current = requestAnimationFrame(() => {
+          setSelectedIndex((prev) =>
+            prev < directories.length - 1 ? prev + 1 : prev
+          );
+          navigationScheduledRef.current = null;
+        });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+
+        // Cancel any pending navigation
+        if (navigationScheduledRef.current !== null) {
+          cancelAnimationFrame(navigationScheduledRef.current);
+        }
+
+        // Schedule navigation for next frame to throttle rapid keypresses
+        navigationScheduledRef.current = requestAnimationFrame(() => {
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+          navigationScheduledRef.current = null;
+        });
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (directories[selectedIndex]) {
