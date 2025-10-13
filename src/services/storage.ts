@@ -87,6 +87,20 @@ export class StorageService {
     const projectDir = path.join(APP_DIR, project.name);
     await fs.mkdir(projectDir, { recursive: true });
     await fs.mkdir(path.join(projectDir, '.context-cache'), { recursive: true });
+
+    // Create empty notes.json if it doesn't exist (prevents file watcher errors)
+    const notesPath = path.join(projectDir, 'notes.json');
+    try {
+      await fs.access(notesPath);
+    } catch {
+      const emptyNotes: NotesFile = {
+        version: '1.0.0',
+        project_path: project.path,
+        last_modified: Date.now(),
+        tasks: []
+      };
+      await this.atomicWrite(notesPath, JSON.stringify(emptyNotes, null, 2));
+    }
   }
 
   /**
