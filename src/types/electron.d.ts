@@ -1,3 +1,11 @@
+import { GatheredContext } from './index';
+
+export interface IPCResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 export interface ElectronAPI {
   initClaude: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
   initOpenAI: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
@@ -22,6 +30,7 @@ export interface ElectronAPI {
     rawText: string,
     projectRoot: string
   ) => Promise<{ success: boolean; context?: string; error?: string }>;
+  gatherProjectContext: (rawText: string, projectRoot: string) => Promise<IPCResponse<GatheredContext>>;
   formatWithClaude: (
     rawText: string,
     contextStr: string,

@@ -43,6 +43,10 @@ export interface AppSettings {
 export interface ClaudeFormatResponse {
   sections: ClaudeSection[];
   warnings: string[];
+  context_used?: {
+    file: string;
+    reason: string;
+  }[];
 }
 
 export interface ClaudeSection {
@@ -64,8 +68,37 @@ export interface ClaudeTask {
   subtasks?: ClaudeTask[];   // Nested subtasks
 }
 
+// Auto-context discovery types
+export interface ContextDiscoveryRequest {
+  rawText: string;
+  projectRoot: string;
+  fileTree: string;
+}
+
+export interface ContextDiscoveryResponse {
+  explicit: string[];  // Files from @ mentions
+  discovered: DiscoveredFile[];
+  reasoning: string;  // Why Claude picked these files
+}
+
+export interface DiscoveredFile {
+  file: string;
+  readFully: boolean;
+  keywords?: string[];  // Only if readFully = false
+}
+
 export interface FileContext {
   path: string;
-  content: string;
-  dependencies?: string[];
+  content: string;  // Full file or grep results
+  lineCount?: number;
+  wasGrepped?: boolean;
+  matchedKeywords?: string[];  // If grepped
+  dependencies?: string[];  // Legacy field for @mention context
+}
+
+export interface GatheredContext {
+  files: FileContext[];
+  totalLines: number;
+  cacheHits: number;
+  cacheMisses: number;
 }
