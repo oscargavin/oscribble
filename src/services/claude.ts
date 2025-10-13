@@ -38,7 +38,11 @@ Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
       "subtasks": [/* nested ClaudeTask objects */]  // Optional: subtasks
     }]
   }],
-  "warnings": ["warning1", "warning2"]               // Array of strings
+  "warnings": ["warning1", "warning2"],              // Array of strings
+  "context_used": [{                                 // Optional: files that informed analysis
+    "file": "src/App.tsx",
+    "reason": "Modified voice recording initialization"
+  }]
 }
 
 IMPORTANT:
@@ -49,7 +53,29 @@ IMPORTANT:
 - Extract tags from context (e.g., "UI work" → ["ui"], "fix bug in API" → ["bug", "api"])
 - Only include optional fields if information exists
 - DO NOT include any text outside the JSON
-- Validate output is parseable JSON`;
+- Validate output is parseable JSON
+
+## Context Usage Metadata
+
+When you receive code context (either from @mentions or auto-discovered files), include the context_used field in your response to explain which files informed your analysis and why. This helps users understand how context influenced your task structuring decisions.
+
+Example:
+{
+  "sections": [...],
+  "tasks": [...],
+  "warnings": [...],
+  "context_used": [
+    {"file": "src/App.tsx", "reason": "Analyzed voice recording initialization for bug fix task"},
+    {"file": "src/hooks/useVoiceRecording.ts", "reason": "Core recording state management relevant to refactoring"},
+    {"file": "src/services/storage.ts", "reason": "Current implementation for async/await migration"}
+  ]
+}
+
+The context_used array should:
+- List each file that influenced your task analysis
+- Provide a brief reason explaining why that file was relevant
+- Be omitted if no code context was provided
+- Focus on files that directly informed priority, dependencies, or task structuring decisions`;
 
 export class ClaudeService {
   private client: Anthropic;
