@@ -1112,12 +1112,12 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       }
       if (e.key === '2') {
         e.preventDefault();
-        setFilterMode('complete');
+        setFilterMode('all');
         return;
       }
       if (e.key === '3') {
         e.preventDefault();
-        setFilterMode('all');
+        setFilterMode('complete');
         return;
       }
       if (e.key === '4') {
