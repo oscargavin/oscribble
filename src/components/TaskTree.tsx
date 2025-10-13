@@ -867,6 +867,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevTaskCountRef = useRef(tasks.length);
   const navigationScheduledRef = useRef<number | null>(null);
+  const taskContainerRef = useRef<HTMLDivElement>(null);
 
   // Flatten tasks for navigation
   const flattenTasks = (taskList: TaskNode[], currentExpanded: Set<string> = expandedTasks): TaskNode[] => {
@@ -973,6 +974,26 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       return newSet;
     });
   };
+
+  // Click outside to deselect
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // Only handle if we have a focused task or selected tasks
+      if (!focusedTaskId && selectedTaskIds.size === 0) return;
+
+      const target = e.target as HTMLElement;
+
+      // Check if click is outside the task container
+      if (taskContainerRef.current && !taskContainerRef.current.contains(target)) {
+        // Clear both focus and selection
+        setFocusedTaskId(null);
+        setSelectedTaskIds(new Set());
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [focusedTaskId, selectedTaskIds]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1535,6 +1556,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   return (
     <div ref={containerRef} className="flex flex-col h-full bg-[var(--bg-primary)]">
       <div ref={scrollContainerRef} className="flex-1 overflow-auto py-1">
+        <div ref={taskContainerRef}>
         {/* Inline task creation input */}
         {isCreating && (
           <div className="flex items-center gap-3 p-3 border-b border-[#FF4D00] bg-[#FF4D00]/5">
@@ -1586,6 +1608,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
             );
           })
         )}
+        </div>
       </div>
 
       {/* Keyboard shortcut hints */}
