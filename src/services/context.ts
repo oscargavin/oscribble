@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { FileContext } from '../types';
+import { FileContext, GatheredContext } from '../types';
+import AutoContextService from './auto-context';
 
 const MAX_FILE_SIZE = 50 * 1024; // 50KB limit per file
 const MAX_DEPTH = 3;
@@ -175,5 +176,55 @@ export class ContextService {
     }
 
     return entries.join('\n\n');
+  }
+
+  /**
+   * Unified context gathering: @mentions + auto-discovery
+   */
+  static async gatherProjectContext(
+    rawText: string,
+    projectRoot: string
+  ): Promise<GatheredContext> {
+    // Check feature flag
+    const autoContextEnabled = process.env.ENABLE_AUTO_CONTEXT !== 'false';
+
+    if (!autoContextEnabled) {
+      // Fall back to explicit @mentions only
+      const explicitContext = await this.gatherContext(rawText, projectRoot);
+      const contextStr = this.formatContextForPrompt(explicitContext);
+      return {
+        files: [
+          {
+            path: '@mentions',
+            content: contextStr,
+            lineCount: contextStr.split('\n').length,
+            wasGrepped: false
+          }
+        ],
+        totalLines: contextStr.split('\n').length,
+        cacheHits: 0,
+        cacheMisses: 1
+      };
+    }
+
+    // Auto-discovery enabled
+    const autoContext = await AutoContextService.discoverContext(rawText, projectRoot);
+
+    // Also gather explicit @mentions (legacy support)
+    const explicitContext = await this.gatherContext(rawText, projectRoot);
+    const contextStr = this.formatContextForPrompt(explicitContext);
+
+    // Merge contexts
+    if (contextStr && contextStr.trim().length > 0) {
+      autoContext.files.unshift({
+        path: '@mentions (explicit)',
+        content: contextStr,
+        lineCount: contextStr.split('\n').length,
+        wasGrepped: false
+      });
+      autoContext.totalLines += contextStr.split('\n').length;
+    }
+
+    return autoContext;
   }
 }
