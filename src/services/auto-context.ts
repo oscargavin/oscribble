@@ -151,6 +151,116 @@ Return JSON only (no markdown):
       };
     }
   }
+
+  /**
+   * Grep file for keywords with context lines
+   */
+  private async grepFile(
+    filePath: string,
+    keywords: string[]
+  ): Promise<string> {
+    const pattern = keywords.join('|');
+
+    try {
+      const { stdout } = await execAsync(
+        `grep -n -C 5 -E "${pattern}" "${filePath}" | head -n 300`,
+        { maxBuffer: 512 * 1024 } // 512KB buffer
+      );
+
+      return stdout || `[No matches found for keywords: ${keywords.join(', ')}]`;
+    } catch (error: any) {
+      // grep exit code 1 means no matches (not an error)
+      if (error.code === 1) {
+        return `[No matches found for keywords: ${keywords.join(', ')}]`;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Load files with caching (reuses existing context cache from context.ts pattern)
+   */
+  private async loadFiles(
+    discovered: DiscoveredFile[],
+    projectRoot: string,
+    cacheDir: string
+  ): Promise<FileContext[]> {
+    const results: FileContext[] = [];
+    let cacheHits = 0;
+    let cacheMisses = 0;
+
+    for (const item of discovered) {
+      const fullPath = path.isAbsolute(item.file)
+        ? item.file
+        : path.join(projectRoot, item.file);
+
+      if (!fs.existsSync(fullPath)) {
+        console.warn(`File not found: ${fullPath}`);
+        continue;
+      }
+
+      const stats = fs.statSync(fullPath);
+      const cacheKey = `${item.file}-${stats.mtimeMs}`;
+      const cachePath = path.join(cacheDir, `${Buffer.from(cacheKey).toString('base64')}.txt`);
+
+      let content: string;
+      let wasGrepped = false;
+      let matchedKeywords: string[] | undefined;
+
+      // Check cache
+      if (fs.existsSync(cachePath)) {
+        const cacheStats = fs.statSync(cachePath);
+        const age = Date.now() - cacheStats.mtimeMs;
+
+        if (age < 7 * 24 * 60 * 60 * 1000) { // 7 days
+          content = fs.readFileSync(cachePath, 'utf-8');
+          cacheHits++;
+        } else {
+          fs.unlinkSync(cachePath); // Expired
+          content = await this.readOrGrepFile(fullPath, item);
+          fs.writeFileSync(cachePath, content);
+          cacheMisses++;
+          wasGrepped = !item.readFully;
+          matchedKeywords = item.keywords;
+        }
+      } else {
+        content = await this.readOrGrepFile(fullPath, item);
+        fs.mkdirSync(cacheDir, { recursive: true });
+        fs.writeFileSync(cachePath, content);
+        cacheMisses++;
+        wasGrepped = !item.readFully;
+        matchedKeywords = item.keywords;
+      }
+
+      const lineCount = content.split('\n').length;
+
+      results.push({
+        path: item.file,
+        content,
+        lineCount,
+        wasGrepped,
+        matchedKeywords
+      });
+    }
+
+    return results;
+  }
+
+  private async readOrGrepFile(
+    fullPath: string,
+    item: DiscoveredFile
+  ): Promise<string> {
+    if (item.readFully) {
+      return fs.readFileSync(fullPath, 'utf-8');
+    } else if (item.keywords && item.keywords.length > 0) {
+      return await this.grepFile(fullPath, item.keywords);
+    } else {
+      // No keywords provided, read first 300 lines
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      const lines = content.split('\n').slice(0, 300);
+      return lines.join('\n') + '\n[... truncated, no keywords provided]';
+    }
+  }
 }
 
 export default new AutoContextService();
