@@ -502,6 +502,19 @@ const TaskRow: React.FC<TaskRowProps> = ({
               })}
             </div>
           )}
+          {/* Context used */}
+          {task.metadata?.notes && task.metadata.notes.some(note => note.startsWith('Context:')) && (
+            <div className="mt-1 text-xs text-[#666666] pl-4 font-mono border-l border-[#444444]">
+              <div className="font-bold text-[#888888] uppercase tracking-wider mb-1">[CONTEXT]</div>
+              {task.metadata.notes
+                .filter(note => note.startsWith('Context:'))
+                .map((note, i) => (
+                  <div key={i} className="ml-2 text-[#666666]">
+                    • {note.replace('Context: ', '')}
+                  </div>
+                ))}
+            </div>
+          )}
           {task.metadata?.blocked_by && task.metadata.blocked_by.length > 0 && (
             <div className="text-xs text-[#FF4D00] mt-1 font-mono pl-4 border-l border-[#FF4D00]">
               [BLOCKED] {task.metadata.blocked_by.join(', ')}
