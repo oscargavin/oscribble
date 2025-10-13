@@ -9,6 +9,7 @@ interface SetupProps {
 
 export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCancel }) => {
   const [apiKey, setApiKey] = useState(existingApiKey || '');
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,20 +105,29 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
     setLoading(true);
 
     try {
-      // Initialize Claude (only if API key changed)
-      if (apiKey !== existingApiKey) {
+      // Initialize Claude (only during initial onboarding when no existing API key)
+      if (!existingApiKey) {
         const result = await window.electronAPI.initClaude(apiKey);
         if (!result.success) {
           throw new Error(result.error || 'Failed to initialize Claude');
         }
-      }
 
-      // Save settings with API key
-      await window.electronAPI.saveSettings({
-        auth_method: 'api_key',
-        current_project: projectName,
-        api_key: apiKey, // Persist API key
-      });
+        // Save settings with API keys during initial onboarding
+        await window.electronAPI.saveSettings({
+          auth_method: 'api_key',
+          current_project: projectName,
+          api_key: apiKey, // Persist Anthropic API key
+          openai_api_key: openaiApiKey, // Persist OpenAI API key
+        });
+      } else {
+        // For new projects, just update the current project
+        await window.electronAPI.saveSettings({
+          auth_method: 'api_key',
+          current_project: projectName,
+          api_key: existingApiKey, // Keep existing Anthropic API key
+          // OpenAI key already exists in settings
+        });
+      }
 
       // Add project
       await window.electronAPI.addProject({
@@ -186,28 +196,26 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="apiKey"
-              className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
-            >
-              Anthropic API Key
-            </label>
-            <input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-ant-..."
-              required
-              disabled={!!existingApiKey}
-              className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono disabled:opacity-30 disabled:cursor-not-allowed"
-            />
-            <p className="text-xs text-[var(--text-dim)] mt-1">
-              {existingApiKey ? (
-                'using existing api key'
-              ) : (
-                <>
+          {/* Only show API key inputs during initial onboarding */}
+          {!existingApiKey && (
+            <>
+              <div>
+                <label
+                  htmlFor="apiKey"
+                  className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+                >
+                  Anthropic API Key
+                </label>
+                <input
+                  id="apiKey"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-ant-..."
+                  required
+                  className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+                />
+                <p className="text-xs text-[var(--text-dim)] mt-1">
                   get your api key from{' '}
                   <a
                     href="https://console.anthropic.com/"
@@ -217,10 +225,39 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                   >
                     console.anthropic.com
                   </a>
-                </>
-              )}
-            </p>
-          </div>
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="openaiApiKey"
+                  className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+                >
+                  OpenAI API Key
+                </label>
+                <input
+                  id="openaiApiKey"
+                  type="password"
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  required
+                  className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+                />
+                <p className="text-xs text-[var(--text-dim)] mt-1">
+                  for whisper transcription - get from{' '}
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#FF4D00] hover:opacity-70"
+                  >
+                    platform.openai.com
+                  </a>
+                </p>
+              </div>
+            </>
+          )}
 
           <div>
             <label
