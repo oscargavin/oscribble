@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRaw: (projectName: string) => ipcRenderer.invoke('get-raw', projectName),
   gatherContext: (rawText: string, projectRoot: string) =>
     ipcRenderer.invoke('gather-context', rawText, projectRoot),
+  gatherProjectContext: (rawText: string, projectRoot: string) =>
+    ipcRenderer.invoke('gather-project-context', rawText, projectRoot),
   formatWithClaude: (rawText: string, contextStr: string, isVoiceInput?: boolean) =>
     ipcRenderer.invoke('format-with-claude', rawText, contextStr, isVoiceInput),
   formatSingleTask: (taskText: string, projectRoot: string) =>
