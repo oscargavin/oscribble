@@ -92,13 +92,37 @@ export class ClaudeService {
   async formatTasks(
     rawText: string,
     contextStr: string,
-    isVoiceInput: boolean = false
+    isVoiceInput: boolean = false,
+    recentCompletions?: Array<{
+      task_id: string;
+      text: string;
+      estimated_time?: string;
+      actual_time: number;
+      completed_at: number;
+    }>
   ): Promise<ClaudeFormatResponse> {
+    // Build few-shot examples from recent completions if available
+    let completionExamples = '';
+    if (recentCompletions && recentCompletions.length > 0) {
+      completionExamples = '\n\nRecent task completions for time estimate calibration:\n';
+      for (const completion of recentCompletions) {
+        const actualHours = completion.actual_time / (1000 * 60 * 60);
+        const actualFormatted = actualHours < 1
+          ? `${(completion.actual_time / (1000 * 60)).toFixed(0)}m`
+          : `${actualHours.toFixed(1)}h`;
+
+        completionExamples += `- Task: "${completion.text}"\n`;
+        completionExamples += `  Estimated: ${completion.estimated_time || 'none'}\n`;
+        completionExamples += `  Actual: ${actualFormatted}\n`;
+      }
+      completionExamples += '\nUse these examples to calibrate your effort estimates for similar tasks.\n';
+    }
+
     const prompt = `Raw tasks${isVoiceInput ? ' (from voice transcription)' : ''}:
 ${rawText}
 
 Context:
-${contextStr}
+${contextStr}${completionExamples}
 
 Analyze and structure these tasks.`;
 

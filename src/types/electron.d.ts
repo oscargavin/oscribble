@@ -34,12 +34,13 @@ export interface ElectronAPI {
   formatWithClaude: (
     rawText: string,
     contextStr: string,
-    isVoiceInput?: boolean
+    isVoiceInput?: boolean,
+    projectName?: string
   ) => Promise<{ success: boolean; data?: any; error?: string }>;
   formatSingleTask: (
     taskText: string,
     projectRoot: string
-  ) => Promise<{ success: boolean; data?: any; error?: string }>;
+  ) => Promise<{ success: boolean; data?: any; contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]; error?: string }>;
   getProjectFiles: (
     projectRoot: string
   ) => Promise<{ success: boolean; files: string[]; error?: string }>;
@@ -57,6 +58,10 @@ export interface ElectronAPI {
   startWatchingProject: (projectName: string) => Promise<{ success: boolean }>;
   stopWatchingProject: () => Promise<{ success: boolean }>;
   onNotesChanged: (callback: (projectName: string) => void) => () => void;
+  // Task timing API
+  startTaskTimer: (projectName: string, taskId: string) => Promise<{ success: boolean; start_time?: number; error?: string }>;
+  completeTask: (projectName: string, taskId: string) => Promise<{ success: boolean; duration?: number; error?: string }>;
+  getRecentCompletions: (projectName: string, limit?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
 }
 
 declare global {

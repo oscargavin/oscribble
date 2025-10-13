@@ -39,10 +39,14 @@ export const RawInput: React.FC<RawInputProps> = ({
     loadFiles();
   }, [projectRoot]);
 
-  // Auto-focus textarea on mount
+  // Auto-focus textarea on mount and position cursor at end
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.focus();
+      const textarea = textareaRef.current;
+      textarea.focus();
+      // Set cursor position to end of existing text
+      const length = textarea.value.length;
+      textarea.setSelectionRange(length, length);
     }
   }, []);
 

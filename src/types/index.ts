@@ -20,6 +20,8 @@ export interface TaskNode {
       wasGrepped?: boolean;
       matchedKeywords?: string[];
     }[];
+    start_time?: number;   // Unix timestamp when task started (active if set && !duration)
+    duration?: number;     // Milliseconds elapsed (presence means completed)
   };
 }
 
@@ -106,4 +108,19 @@ export interface GatheredContext {
   totalLines: number;
   cacheHits: number;
   cacheMisses: number;
+}
+
+// Task completion tracking for time estimate learning
+export interface CompletionLogEntry {
+  task_id: string;
+  text: string;
+  estimated_time?: string;  // e.g., "4-6h"
+  actual_time: number;      // Milliseconds
+  completed_at: number;     // Unix timestamp
+}
+
+export interface CompletionLog {
+  version: string;
+  retention_policy: string; // e.g., "last_100"
+  completions: CompletionLogEntry[];
 }

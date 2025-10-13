@@ -107,3 +107,6 @@ out/
 
 # Git worktrees (development workspaces)
 .worktrees/
+
+# Context cache (runtime)
+.context-cache/

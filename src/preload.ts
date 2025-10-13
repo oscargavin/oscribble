@@ -24,8 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('gather-context', rawText, projectRoot),
   gatherProjectContext: (rawText: string, projectRoot: string) =>
     ipcRenderer.invoke('gather-project-context', rawText, projectRoot),
-  formatWithClaude: (rawText: string, contextStr: string, isVoiceInput?: boolean) =>
-    ipcRenderer.invoke('format-with-claude', rawText, contextStr, isVoiceInput),
+  formatWithClaude: (rawText: string, contextStr: string, isVoiceInput?: boolean, projectName?: string) =>
+    ipcRenderer.invoke('format-with-claude', rawText, contextStr, isVoiceInput, projectName),
   formatSingleTask: (taskText: string, projectRoot: string) =>
     ipcRenderer.invoke('format-single-task', taskText, projectRoot),
   getProjectFiles: (projectRoot: string) =>
@@ -46,4 +46,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('notes-file-changed', listener);
     return () => ipcRenderer.removeListener('notes-file-changed', listener);
   },
+  // Task timing API
+  startTaskTimer: (projectName: string, taskId: string) =>
+    ipcRenderer.invoke('start-task-timer', projectName, taskId),
+  completeTask: (projectName: string, taskId: string) =>
+    ipcRenderer.invoke('complete-task', projectName, taskId),
+  getRecentCompletions: (projectName: string, limit?: number) =>
+    ipcRenderer.invoke('get-recent-completions', projectName, limit),
 });

@@ -10,6 +10,7 @@ import { TaskNode, NotesFile, ClaudeFormatResponse } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { useProjects } from "./hooks/useProjects";
 import { useVoiceRecording } from "./hooks/useVoiceRecording";
+import logo from "./oscribble-logo.png";
 
 type View = "setup" | "raw" | "tasks";
 type FilterMode = 'all' | 'unchecked' | 'complete' | 'critical' | 'blocked';
@@ -28,7 +29,7 @@ function App() {
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [filterMode, setFilterMode] = useState<FilterMode>('unchecked');
 
   // Voice recording state
   const { isRecording, startRecording, stopRecording } = useVoiceRecording();
@@ -503,7 +504,8 @@ function App() {
       const result = await window.electronAPI.formatWithClaude(
         textToFormat,
         contextStr,
-        isVoiceInput
+        isVoiceInput,
+        projectName
       );
 
       if (!result.success) {
@@ -642,9 +644,12 @@ function App() {
       {/* Header - Draggable region */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 drag-region">
         <div className="flex items-center gap-6 no-drag">
-          <h1 className="text-sm font-mono font-bold tracking-wider uppercase text-[var(--text-primary)]">
-            OSCRIBBLE
-          </h1>
+          <img
+            src={logo}
+            alt="Oscribble"
+            className="h-6 w-auto"
+            style={{ imageRendering: 'crisp-edges' }}
+          />
           <ProjectSwitcher
             projects={projects}
             currentProject={projectName}
@@ -730,6 +735,7 @@ function App() {
             setFilterMode={setFilterMode}
             showContextFiles={showContextFiles}
             setShowContextFiles={setShowContextFiles}
+            hasVoice={!!openaiApiKey}
           />
         )}
       </div>

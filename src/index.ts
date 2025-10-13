@@ -311,12 +311,23 @@ ipcMain.handle('gather-project-context', async (_, rawText: string, projectRoot:
 });
 
 // Format with Claude
-ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false) => {
+ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false, projectName?: string) => {
   try {
     if (!claudeService) {
       throw new Error('Claude service not initialized');
     }
-    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput);
+
+    // Get recent completions for few-shot learning if project specified
+    let recentCompletions;
+    if (projectName) {
+      try {
+        recentCompletions = await StorageService.getRecentCompletions(projectName, 10);
+      } catch (error) {
+        console.warn('Failed to load recent completions for few-shot learning:', error);
+      }
+    }
+
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, recentCompletions);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };
@@ -330,13 +341,33 @@ ipcMain.handle('format-single-task', async (_, taskText: string, projectRoot: st
       throw new Error('Claude service not initialized');
     }
 
-    // Gather context from any @mentions in the task text
-    const contextResult = await ContextService.gatherContext(taskText, projectRoot);
-    const contextStr = ContextService.formatContextForPrompt(contextResult);
+    // Gather context using unified system (@mentions + auto-discovery)
+    const contextResult = await ContextService.gatherProjectContext(taskText, projectRoot);
+
+    // Format context for Claude prompt
+    let contextString = '';
+    if (contextResult.files && contextResult.files.length > 0) {
+      contextString = contextResult.files.map(f => {
+        const header = f.wasGrepped
+          ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+          : `--- ${f.path} ---`;
+        return `${header}\n${f.content}`;
+      }).join('\n\n');
+    }
+
+    // Extract file metadata for storage with tasks
+    const contextFiles = contextResult.files.map(f => ({
+      path: f.path,
+      wasGrepped: f.wasGrepped,
+      matchedKeywords: f.matchedKeywords
+    }));
+
+    console.log(`Context for single task: ${contextResult.files.length} files, ${contextResult.totalLines} lines (${contextResult.cacheHits} cached)`);
 
     // Format the task with Claude
-    const response = await claudeService.formatTasks(taskText, contextStr);
-    return { success: true, data: response };
+    const response = await claudeService.formatTasks(taskText, contextString);
+
+    return { success: true, data: response, contextFiles };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -537,6 +568,113 @@ ipcMain.handle('stop-watching-project', async (event) => {
     stopWatchingProject(window);
   }
   return { success: true };
+});
+
+// Start task timer
+ipcMain.handle('start-task-timer', async (_, projectName: string, taskId: string) => {
+  try {
+    const notes = await StorageService.getNotes(projectName);
+    if (!notes) {
+      return { success: false, error: 'Project not found' };
+    }
+
+    // Find the task recursively
+    function findTask(tasks: any[]): any {
+      for (const task of tasks) {
+        if (task.id === taskId) {
+          return task;
+        }
+        if (task.children && task.children.length > 0) {
+          const found = findTask(task.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    const task = findTask(notes.tasks);
+    if (!task) {
+      return { success: false, error: 'Task not found' };
+    }
+
+    // Set start time
+    if (!task.metadata) {
+      task.metadata = {};
+    }
+    task.metadata.start_time = Date.now();
+
+    // Save updated notes
+    await StorageService.saveNotes(projectName, notes);
+
+    return { success: true, start_time: task.metadata.start_time };
+  } catch (error) {
+    console.error('Start task timer error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Complete task and log duration
+ipcMain.handle('complete-task', async (_, projectName: string, taskId: string) => {
+  try {
+    const notes = await StorageService.getNotes(projectName);
+    if (!notes) {
+      return { success: false, error: 'Project not found' };
+    }
+
+    // Find the task recursively
+    function findTask(tasks: any[]): any {
+      for (const task of tasks) {
+        if (task.id === taskId) {
+          return task;
+        }
+        if (task.children && task.children.length > 0) {
+          const found = findTask(task.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    const task = findTask(notes.tasks);
+    if (!task) {
+      return { success: false, error: 'Task not found' };
+    }
+
+    // Calculate duration if task was started
+    let duration = 0;
+    if (task.metadata?.start_time) {
+      duration = Date.now() - task.metadata.start_time;
+      task.metadata.duration = duration;
+    }
+
+    // Save completion to log
+    await StorageService.appendCompletion(projectName, {
+      task_id: taskId,
+      text: task.text,
+      estimated_time: task.metadata?.effort_estimate,
+      actual_time: duration,
+      completed_at: Date.now()
+    });
+
+    // Save updated notes
+    await StorageService.saveNotes(projectName, notes);
+
+    return { success: true, duration };
+  } catch (error) {
+    console.error('Complete task error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Get recent completions for few-shot learning
+ipcMain.handle('get-recent-completions', async (_, projectName: string, limit: number = 10) => {
+  try {
+    const completions = await StorageService.getRecentCompletions(projectName, limit);
+    return { success: true, data: completions };
+  } catch (error) {
+    console.error('Get recent completions error:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // Initialize storage on app ready

@@ -13,7 +13,63 @@ interface TaskTreeProps {
   setFilterMode: (mode: FilterMode) => void;
   showContextFiles: Set<string>;
   setShowContextFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
+  hasVoice?: boolean;
 }
+
+interface EmptyStateProps {
+  filterMode: FilterMode;
+  hasVoice?: boolean;
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ filterMode, hasVoice = false }) => {
+  const getEmptyMessage = (): string => {
+    switch (filterMode) {
+      case 'unchecked':
+        return '[NO UNCOMPLETED TASKS]';
+      case 'complete':
+        return '[NO COMPLETED TASKS]';
+      case 'critical':
+        return '[NO CRITICAL TASKS]';
+      case 'blocked':
+        return '[NO BLOCKED TASKS]';
+      case 'all':
+      default:
+        return '[NO TASKS IN VIEW]';
+    }
+  };
+
+  const getHelpText = () => {
+    if (filterMode === 'unchecked') {
+      return (
+        <>
+          <div className="text-[#666666]">Press <span className="text-[#888888]">N</span> for new task</div>
+          <div className="text-[#666666]">Press <span className="text-[#888888]">CMD+T</span> for raw text to format many tasks</div>
+          {hasVoice && (
+            <div className="text-[#666666]">Press <span className="text-[#888888]">CMD+R</span> for voice input</div>
+          )}
+        </>
+      );
+    }
+    return (
+      <div className="text-[#444444]">
+        Press <span className="text-[#666666]">1-5</span> to change filter
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full px-6 py-8">
+      <div className="relative border-l-4 border-l-[#333333] border border-[#222222] bg-[#0A0A0A] px-8 py-6">
+        <div className="text-[#666666] text-sm font-mono uppercase tracking-wider text-center font-bold">
+          {getEmptyMessage()}
+        </div>
+        <div className="text-xs font-mono tracking-wider text-center mt-3 space-y-1">
+          {getHelpText()}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface RelationshipEditorProps {
   task: TaskNode;
@@ -368,7 +424,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
       case 'performance':
         return 'border-l-2 border-l-[#E6E6E6]';
       case 'feature':
-        return 'border-l-2 border-l-[#555555]';
+        return ''; // No border for feature priority (default)
       default:
         return '';
     }
@@ -391,14 +447,18 @@ const TaskRow: React.FC<TaskRowProps> = ({
       // Left and right borders always present when selected
       classes.push('border-l-2 border-l-[#FF4D00]', 'border-r-2 border-r-[#FF4D00]');
 
-      // Top border only on first selected
+      // Top border only on first selected, otherwise transparent
       if (isFirstSelected) {
         classes.push('border-t-2 border-t-[#FF4D00]');
+      } else {
+        classes.push('border-t-2 border-t-transparent');
       }
 
-      // Bottom border only on last selected
+      // Bottom border only on last selected, otherwise transparent
       if (isLastSelected) {
         classes.push('border-b-2 border-b-[#FF4D00]');
+      } else {
+        classes.push('border-b-2 border-b-transparent');
       }
     }
 
@@ -412,7 +472,6 @@ const TaskRow: React.FC<TaskRowProps> = ({
       className={`flex items-start gap-3 p-3 border-2 ${!isSelected && !isFocused ? 'border-transparent border-b-[#111111]' : ''} hover:bg-[#0A0A0A] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused ? 'border-[#FF4D00] bg-[#FF4D00]/5' : ''} ${getSelectionBorderClasses()}`}
       style={{
         marginLeft: `${(task.indent + depth) * 20}px`,
-        borderLeft: !isFocused && !isSelected && (task.indent + depth) > 0 ? '2px solid #222222' : undefined,
         minHeight: isRawTask ? '96px' : undefined, // Extra height for raw tasks to fit buttons below badges
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -430,11 +489,13 @@ const TaskRow: React.FC<TaskRowProps> = ({
         onFocus(task.id);
       }}
     >
-      <Checkbox
-        checked={task.checked}
-        onCheckedChange={() => onToggle(task.id)}
-        className="mt-1 cursor-pointer"
-      />
+      <div className="relative flex-shrink-0">
+        <Checkbox
+          checked={task.checked}
+          onCheckedChange={() => onToggle(task.id)}
+          className="mt-1 cursor-pointer"
+        />
+      </div>
 
       {isEditing ? (
         <input
@@ -751,6 +812,14 @@ const TaskRow: React.FC<TaskRowProps> = ({
           </button>
         </div>
       )}
+
+      {/* Active task indicator - clean pulse at bottom, aligned with checkbox */}
+      {task.metadata?.start_time && !task.metadata?.duration && (
+        <span className="absolute left-5 bottom-1 flex h-1.5 w-1.5 flex-shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D00] opacity-40 [animation-duration:2s]"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#FF4D00]"></span>
+        </span>
+      )}
     </div>
 
     {/* Render subtasks if expanded */}
@@ -785,7 +854,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
   );
 };
 
-export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, filterMode, setFilterMode, showContextFiles, setShowContextFiles }) => {
+export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, filterMode, setFilterMode, showContextFiles, setShowContextFiles, hasVoice = false }) => {
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
@@ -915,17 +984,17 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       // Number keys to switch filter mode
       if (e.key === '1') {
         e.preventDefault();
-        setFilterMode('all');
+        setFilterMode('unchecked');
         return;
       }
       if (e.key === '2') {
         e.preventDefault();
-        setFilterMode('unchecked');
+        setFilterMode('complete');
         return;
       }
       if (e.key === '3') {
         e.preventDefault();
-        setFilterMode('complete');
+        setFilterMode('all');
         return;
       }
       if (e.key === '4') {
@@ -1124,6 +1193,15 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
 
           return newSet;
         });
+      }
+      // C key to clear selection/deselect
+      else if ((e.key === 'c' || e.key === 'C') && (focusedTaskId || selectedTaskIds.size > 0)) {
+        // Only trigger if not using Cmd/Ctrl (to avoid conflict with copy)
+        if (!e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          setFocusedTaskId(null);
+          setSelectedTaskIds(new Set());
+        }
       }
     };
 
@@ -1350,6 +1428,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
 
       // Parse the Claude response
       const response = result.data;
+      const contextFiles = result.contextFiles || [];
 
       // Extract formatted metadata from the first task in the first section
       if (response.sections.length === 0 || response.sections[0].tasks.length === 0) {
@@ -1378,6 +1457,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
                 effort_estimate: formattedTask.effort_estimate,
                 tags: formattedTask.tags,
                 formatted: true, // Mark as formatted
+                context_files: contextFiles, // Store context files metadata
               },
             };
           }
@@ -1414,7 +1494,6 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       indent: 0,
       children: [],
       metadata: {
-        priority: 'feature', // Default priority
         formatted: false, // Not yet analyzed by Claude
       },
     };
@@ -1459,7 +1538,6 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         {/* Inline task creation input */}
         {isCreating && (
           <div className="flex items-center gap-3 p-3 border-b border-[#FF4D00] bg-[#FF4D00]/5">
-            <div className="w-4 h-4 border border-[#FF4D00] bg-transparent flex-shrink-0 mt-1" />
             <input
               ref={newTaskInputRef}
               type="text"
@@ -1470,43 +1548,44 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
               placeholder="Enter task description..."
               className="flex-1 bg-[#0A0A0A] text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-sm font-mono placeholder:text-[#666666]"
             />
-            <span className="text-xs px-2 py-1 border border-[#555555] bg-transparent text-[#888888] font-mono uppercase tracking-wider">
-              FEATURE
-            </span>
           </div>
         )}
 
-        {displayTasks.map((task, index) => {
-          // Determine if this is the first or last selected task in display order
-          const selectedIndices = displayTasks
-            .map((t, i) => (selectedTaskIds.has(t.id) ? i : -1))
-            .filter(i => i !== -1);
-          const firstSelectedIndex = selectedIndices[0];
-          const lastSelectedIndex = selectedIndices[selectedIndices.length - 1];
+        {displayTasks.length === 0 ? (
+          <EmptyState filterMode={filterMode} hasVoice={hasVoice} />
+        ) : (
+          displayTasks.map((task, index) => {
+            // Determine if this is the first or last selected task in display order
+            const selectedIndices = displayTasks
+              .map((t, i) => (selectedTaskIds.has(t.id) ? i : -1))
+              .filter(i => i !== -1);
+            const firstSelectedIndex = selectedIndices[0];
+            const lastSelectedIndex = selectedIndices[selectedIndices.length - 1];
 
-          return (
-            <TaskRow
-              key={task.id}
-              task={task}
-              onToggle={handleToggle}
-              onTextChange={handleTextChange}
-              onIndentChange={handleIndentChange}
-              onDelete={handleDelete}
-              onMetadataChange={handleMetadataChange}
-              onFormat={handleFormat}
-              onFocus={setFocusedTaskId}
-              isFocused={task.id === focusedTaskId}
-              isSelected={selectedTaskIds.has(task.id)}
-              isFirstSelected={index === firstSelectedIndex}
-              isLastSelected={index === lastSelectedIndex}
-              isExpanded={expandedTasks.has(task.id)}
-              onToggleExpand={handleToggleExpand}
-              expandedTasks={expandedTasks}
-              isFormattingTaskId={formattingTaskId}
-              showContextFiles={showContextFiles}
-            />
-          );
-        })}
+            return (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onToggle={handleToggle}
+                onTextChange={handleTextChange}
+                onIndentChange={handleIndentChange}
+                onDelete={handleDelete}
+                onMetadataChange={handleMetadataChange}
+                onFormat={handleFormat}
+                onFocus={setFocusedTaskId}
+                isFocused={task.id === focusedTaskId}
+                isSelected={selectedTaskIds.has(task.id)}
+                isFirstSelected={index === firstSelectedIndex}
+                isLastSelected={index === lastSelectedIndex}
+                isExpanded={expandedTasks.has(task.id)}
+                onToggleExpand={handleToggleExpand}
+                expandedTasks={expandedTasks}
+                isFormattingTaskId={formattingTaskId}
+                showContextFiles={showContextFiles}
+              />
+            );
+          })
+        )}
       </div>
 
       {/* Keyboard shortcut hints */}
@@ -1562,6 +1641,10 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">M</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">METADATA</span>
+        </div>
+        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">C</kbd>
+          <span className="text-[#888888] text-xs font-mono uppercase">DESELECT</span>
         </div>
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>

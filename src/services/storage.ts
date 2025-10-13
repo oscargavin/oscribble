@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { NotesFile, ProjectSettings, AppSettings } from '../types';
+import { NotesFile, ProjectSettings, AppSettings, CompletionLog, CompletionLogEntry } from '../types';
 
 const APP_DIR = path.join(os.homedir(), '.project-stickies');
 
@@ -228,6 +228,55 @@ export class StorageService {
     } catch (error) {
       console.error(`Failed to delete project directory for ${projectName}:`, error);
     }
+  }
+
+  /**
+   * Get completion log for a project
+   */
+  static async getCompletionLog(projectName: string): Promise<CompletionLog> {
+    const logPath = path.join(APP_DIR, projectName, 'completion_log.json');
+    try {
+      const data = await fs.readFile(logPath, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      // Return empty log if file doesn't exist
+      return {
+        version: '1.0.0',
+        retention_policy: 'last_100',
+        completions: []
+      };
+    }
+  }
+
+  /**
+   * Save completion log for a project
+   */
+  static async saveCompletionLog(projectName: string, log: CompletionLog): Promise<void> {
+    const logPath = path.join(APP_DIR, projectName, 'completion_log.json');
+    await this.atomicWrite(logPath, JSON.stringify(log, null, 2));
+  }
+
+  /**
+   * Append a completion entry to the log (with retention policy)
+   */
+  static async appendCompletion(projectName: string, entry: CompletionLogEntry): Promise<void> {
+    const log = await this.getCompletionLog(projectName);
+    log.completions.push(entry);
+
+    // Apply retention policy - keep only last 100 completions
+    if (log.completions.length > 100) {
+      log.completions = log.completions.slice(-100);
+    }
+
+    await this.saveCompletionLog(projectName, log);
+  }
+
+  /**
+   * Get recent completions for few-shot learning (default: last 10)
+   */
+  static async getRecentCompletions(projectName: string, limit: number = 10): Promise<CompletionLogEntry[]> {
+    const log = await this.getCompletionLog(projectName);
+    return log.completions.slice(-limit);
   }
 
   /**
