@@ -143,8 +143,10 @@ export const RawInput: React.FC<RawInputProps> = ({
 
       setRawText(newText);
       setTimeout(() => {
-        textarea.selectionStart = newCursorPos;
-        textarea.selectionEnd = newCursorPos;
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newCursorPos;
+          textareaRef.current.selectionEnd = newCursorPos;
+        }
       }, 0);
       return;
     }
@@ -165,8 +167,10 @@ export const RawInput: React.FC<RawInputProps> = ({
 
           setRawText(newText);
           setTimeout(() => {
-            textarea.selectionStart = newCursorPos;
-            textarea.selectionEnd = newCursorPos;
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = newCursorPos;
+              textareaRef.current.selectionEnd = newCursorPos;
+            }
           }, 0);
         }
       } else {
@@ -180,8 +184,10 @@ export const RawInput: React.FC<RawInputProps> = ({
 
         setRawText(newText);
         setTimeout(() => {
-          textarea.selectionStart = newCursorPos;
-          textarea.selectionEnd = newCursorPos;
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = newCursorPos;
+            textareaRef.current.selectionEnd = newCursorPos;
+          }
         }, 0);
       }
       return;
