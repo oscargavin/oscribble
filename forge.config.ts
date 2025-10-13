@@ -21,11 +21,8 @@ const config: ForgeConfig = {
       // Required for macOS to show microphone permission dialog
       NSMicrophoneUsageDescription: 'Oscribble uses your microphone to transcribe voice input for tasks.',
     },
-    osxSign: {
-      identity: '-', // Ad-hoc signing for development
-      entitlements: './entitlements.mac.plist',
-      'entitlements-inherit': './entitlements.mac.plist',
-    },
+    // Disable explicit signing - let Electron auto-sign for distribution
+    // osxSign: {},
   },
   rebuildConfig: {},
   makers: [
