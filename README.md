@@ -24,7 +24,12 @@ brutalist task manager. claude ai.
 ## install
 
 download `.dmg` from [releases](https://github.com/oscargavin/oscribble/releases)
-drag to applications. open. enter [anthropic api key](https://console.anthropic.com/)
+
+**macos security note:** unsigned app requires terminal command after install:
+```bash
+sudo xattr -cr /Applications/Oscribble.app
+```
+then launch normally. enter [anthropic api key](https://console.anthropic.com/) on first run.
 
 ### build from source
 
