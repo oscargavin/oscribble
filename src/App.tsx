@@ -34,6 +34,7 @@ function App() {
   // Voice recording state
   const { isRecording, startRecording, stopRecording } = useVoiceRecording();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<string>('');
 
   // Use the projects hook for centralized project state management
   const { projects, refreshProjects } = useProjects();
@@ -408,6 +409,7 @@ function App() {
     if (!isRecording) return;
 
     setIsProcessing(true);
+    setVoiceStatus('TRANSCRIBING');
     try {
       const audioBlob = await stopRecording();
       if (!audioBlob) {
@@ -425,6 +427,7 @@ function App() {
 
       const transcript = transcriptResult.data;
 
+      setVoiceStatus('GATHERING');
       // Gather context from transcript (includes @mentions and auto-discovery)
       const contextResult = await window.electronAPI.gatherProjectContext(
         transcript,
@@ -453,13 +456,17 @@ function App() {
         console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
       }
 
+      setVoiceStatus('ANALYZING');
       // Format with Claude (with voice input flag)
       await handleFormat(transcript, contextString, true, contextFiles);
+
+      setVoiceStatus('FORMATTING');
     } catch (error) {
       console.error('Voice processing error:', error);
       alert(`Voice processing failed: ${error.message}`);
     } finally {
       setIsProcessing(false);
+      setVoiceStatus('');
     }
   };
 
@@ -597,7 +604,7 @@ function App() {
   };
 
   const cycleFilterMode = () => {
-    const modes: FilterMode[] = ['all', 'unchecked', 'complete', 'high', 'blocked'];
+    const modes: FilterMode[] = ['unchecked', 'all', 'complete', 'high', 'blocked'];
     const currentIndex = modes.indexOf(filterMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     setFilterMode(modes[nextIndex]);
@@ -615,8 +622,8 @@ function App() {
 
   const getFilterTitle = () => {
     switch (filterMode) {
-      case 'all': return 'All tasks (1)';
-      case 'unchecked': return 'Incomplete tasks (2)';
+      case 'unchecked': return 'Incomplete tasks (1)';
+      case 'all': return 'All tasks (2)';
       case 'complete': return 'Complete tasks (3)';
       case 'high': return 'High priority tasks (4)';
       case 'blocked': return 'Blocked tasks (5)';
@@ -660,6 +667,9 @@ function App() {
             onDelete={handleDeleteProject}
             onOpenInNewWindow={handleOpenInNewWindow}
           />
+          {voiceStatus && (
+            <span className="text-xs text-[#888888] font-mono uppercase">{voiceStatus}...</span>
+          )}
         </div>
         <div className="flex items-center gap-3 no-drag">
           {/* Filter Button - only show when in tasks view */}

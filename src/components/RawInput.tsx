@@ -17,6 +17,7 @@ export const RawInput: React.FC<RawInputProps> = ({
   const [rawText, setRawText] = useState(initialValue);
   const [saving, setSaving] = useState(false);
   const [formatting, setFormatting] = useState(false);
+  const [formatStatus, setFormatStatus] = useState<string>('');
   const [projectFiles, setProjectFiles] = useState<string[]>([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
@@ -65,8 +66,24 @@ export const RawInput: React.FC<RawInputProps> = ({
       // Add subtle tree arm for non-empty lines with indent > 0
       const showArm = trimmedLine.length > 0 && indentLevel > 0;
 
+      // Calculate padding and text-indent for proper text wrapping
+      // Each indent level = 2 spaces at ~8px each = 16px per level
+      // The arm "└─ " is positioned absolutely and is ~3 chars wide (24px)
+      // We want wrapped text to align with the first character, not the indent/pipe
+      const charWidth = 8; // Approximate character width in pixels for 13px monospace
+      const spacesWidth = indentLevel * 2 * charWidth; // Width of leading spaces
+      const armWidth = showArm ? 3 * charWidth : 0; // Width of "└─ "
+      const totalIndent = spacesWidth + armWidth;
+
       return (
-        <div key={idx} className="formatted-line">
+        <div
+          key={idx}
+          className="formatted-line"
+          style={{
+            paddingLeft: totalIndent > 0 ? `${totalIndent}px` : 0,
+            textIndent: totalIndent > 0 ? `-${totalIndent}px` : 0,
+          }}
+        >
           {showArm && (
             <span
               className="line-arm"
@@ -251,6 +268,7 @@ export const RawInput: React.FC<RawInputProps> = ({
 
   const handleFormat = async () => {
     setFormatting(true);
+    setFormatStatus('GATHERING');
     try {
       // Gather context from @mentions and auto-discovery
       const contextResult = await window.electronAPI.gatherProjectContext(
@@ -284,12 +302,16 @@ export const RawInput: React.FC<RawInputProps> = ({
         console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
       }
 
+      setFormatStatus('ANALYZING');
       await onFormat(rawText, contextString, false, contextFiles);
+
+      setFormatStatus('FORMATTING');
     } catch (error) {
       console.error('Format error:', error);
       alert(`Failed to format: ${error.message}`);
     } finally {
       setFormatting(false);
+      setFormatStatus('');
     }
   };
 
@@ -316,9 +338,9 @@ export const RawInput: React.FC<RawInputProps> = ({
             className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2"
           >
             {formatting ? (
-              <span className="loading-ellipsis">FORMATTING</span>
+              <span className="loading-ellipsis">{formatStatus}</span>
             ) : (
-              'FORMAT'
+              'FORMAT > CLAUDE'
             )}
           </button>
         </div>
