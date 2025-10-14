@@ -3,18 +3,21 @@ import React, { useState } from 'react';
 interface SettingsProps {
   currentApiKey?: string;
   currentOpenAIApiKey?: string;
-  onSave: (apiKey: string, openaiApiKey?: string) => void;
+  currentUserContext?: string;
+  onSave: (apiKey: string, openaiApiKey?: string, userContext?: string) => void;
   onClose: () => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({
   currentApiKey,
   currentOpenAIApiKey,
+  currentUserContext,
   onSave,
   onClose,
 }) => {
   const [apiKey, setApiKey] = useState(currentApiKey || '');
   const [openaiApiKey, setOpenaiApiKey] = useState(currentOpenAIApiKey || '');
+  const [userContext, setUserContext] = useState(currentUserContext || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [testingAnthropic, setTestingAnthropic] = useState(false);
@@ -98,15 +101,16 @@ export const Settings: React.FC<SettingsProps> = ({
         }
       }
 
-      // Get current settings and update API keys
+      // Get current settings and update API keys and user context
       const settings = await window.electronAPI.getSettings();
       await window.electronAPI.saveSettings({
         ...settings,
         api_key: apiKey,
         openai_api_key: openaiApiKey.trim() || undefined,
+        user_context: userContext.trim() || undefined,
       });
 
-      onSave(apiKey, openaiApiKey);
+      onSave(apiKey, openaiApiKey, userContext);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -265,6 +269,29 @@ export const Settings: React.FC<SettingsProps> = ({
                 >
                   platform.openai.com
                 </a>
+              </p>
+            </div>
+          </div>
+
+          {/* Personal Context Section */}
+          <div>
+            <label
+              htmlFor="userContext"
+              className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+            >
+              Personal Context (Optional)
+            </label>
+            <div className="space-y-2">
+              <textarea
+                id="userContext"
+                value={userContext}
+                onChange={(e) => setUserContext(e.target.value)}
+                placeholder="Add personal context to help Claude personalize your tasks...&#10;&#10;Examples:&#10;• Location: San Francisco, CA&#10;• Tax year: 2024&#10;• Work schedule: Mon-Fri 9-5&#10;• Preferences: prefer morning appointments&#10;• Current goals: organizing finances, job search&#10;• Any other relevant personal information"
+                rows={8}
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono resize-y"
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1">
+                this information helps Claude better understand your needs when organizing life admin tasks
               </p>
             </div>
           </div>

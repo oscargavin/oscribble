@@ -9,8 +9,10 @@ interface SetupProps {
 }
 
 export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCancel }) => {
+  const [step, setStep] = useState<'api_keys' | 'about_you' | 'project'>(existingApiKey ? 'project' : 'api_keys');
   const [apiKey, setApiKey] = useState(existingApiKey || '');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [userContext, setUserContext] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [projectName, setProjectName] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('code');
@@ -101,33 +103,58 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
     // The useEffect will trigger after 200ms to show subdirectories
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleApiKeysSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // Initialize Claude (only during initial onboarding when no existing API key)
-      if (!existingApiKey) {
-        const result = await window.electronAPI.initClaude(apiKey);
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to initialize Claude');
-        }
+      // Initialize Claude with API key
+      const result = await window.electronAPI.initClaude(apiKey);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to initialize Claude');
+      }
 
-        // Save settings with API keys during initial onboarding
+      // Move to next step
+      setStep('about_you');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAboutYouContinue = () => {
+    setStep('project');
+  };
+
+  const handleAboutYouSkip = () => {
+    setUserContext('');
+    setStep('project');
+  };
+
+  const handleProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      // Save settings with all collected information
+      if (!existingApiKey) {
+        // Initial onboarding - save API keys and user context
         await window.electronAPI.saveSettings({
           auth_method: 'api_key',
           current_project: projectName,
-          api_key: apiKey, // Persist Anthropic API key
-          openai_api_key: openaiApiKey, // Persist OpenAI API key
+          api_key: apiKey,
+          openai_api_key: openaiApiKey,
+          user_context: userContext || undefined,
         });
       } else {
-        // For new projects, just update the current project
+        // New project only - just update current project
         await window.electronAPI.saveSettings({
           auth_method: 'api_key',
           current_project: projectName,
-          api_key: existingApiKey, // Keep existing Anthropic API key
-          // OpenAI key already exists in settings
+          api_key: existingApiKey,
         });
       }
 
@@ -140,7 +167,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
         last_accessed: Date.now(),
       });
 
-      onComplete(apiKey, projectPath);
+      onComplete(apiKey || existingApiKey, projectPath);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -190,77 +217,137 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
         )}
 
         <h1 className="text-sm font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
-          {existingApiKey ? 'New Project' : 'Welcome to Oscribble'}
+          {existingApiKey ? 'New Project' : step === 'api_keys' ? 'Welcome to Oscribble' : step === 'about_you' ? 'About You' : 'New Project'}
         </h1>
         <p className="text-xs text-[var(--text-dim)] mb-8">
           {existingApiKey
             ? 'create a new project to organize your tasks.'
-            : 'transform your task notes into structured, actionable lists with ai.'}
+            : step === 'api_keys'
+            ? 'transform your task notes into structured, actionable lists with ai.'
+            : step === 'about_you'
+            ? 'tell us about yourself to help personalize your experience. this is optional.'
+            : 'create your first project to get started.'}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Only show API key inputs during initial onboarding */}
-          {!existingApiKey && (
-            <>
-              <div>
-                <label
-                  htmlFor="apiKey"
-                  className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+        {step === 'api_keys' && (
+          <form onSubmit={handleApiKeysSubmit} className="space-y-6">
+            <div>
+              <label
+                htmlFor="apiKey"
+                className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+              >
+                Anthropic API Key
+              </label>
+              <input
+                id="apiKey"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-ant-..."
+                required
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1">
+                get your api key from{' '}
+                <a
+                  href="https://console.anthropic.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FF4D00] hover:opacity-70"
                 >
-                  Anthropic API Key
-                </label>
-                <input
-                  id="apiKey"
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-ant-..."
-                  required
-                  className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
-                />
-                <p className="text-xs text-[var(--text-dim)] mt-1">
-                  get your api key from{' '}
-                  <a
-                    href="https://console.anthropic.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#FF4D00] hover:opacity-70"
-                  >
-                    console.anthropic.com
-                  </a>
-                </p>
-              </div>
+                  console.anthropic.com
+                </a>
+              </p>
+            </div>
 
-              <div>
-                <label
-                  htmlFor="openaiApiKey"
-                  className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+            <div>
+              <label
+                htmlFor="openaiApiKey"
+                className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+              >
+                OpenAI API Key
+              </label>
+              <input
+                id="openaiApiKey"
+                type="password"
+                value={openaiApiKey}
+                onChange={(e) => setOpenaiApiKey(e.target.value)}
+                placeholder="sk-..."
+                required
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1">
+                for whisper transcription - get from{' '}
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FF4D00] hover:opacity-70"
                 >
-                  OpenAI API Key
-                </label>
-                <input
-                  id="openaiApiKey"
-                  type="password"
-                  value={openaiApiKey}
-                  onChange={(e) => setOpenaiApiKey(e.target.value)}
-                  placeholder="sk-..."
-                  required
-                  className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
-                />
-                <p className="text-xs text-[var(--text-dim)] mt-1">
-                  for whisper transcription - get from{' '}
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#FF4D00] hover:opacity-70"
-                  >
-                    platform.openai.com
-                  </a>
-                </p>
+                  platform.openai.com
+                </a>
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-[#FF4D00]/10 border border-[#FF4D00] text-xs text-[#FF4D00]">
+                {error}
               </div>
-            </>
-          )}
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
+            >
+              {loading ? 'Validating...' : 'Continue'}
+            </button>
+          </form>
+        )}
+
+        {step === 'about_you' && (
+          <div className="space-y-6">
+            <div>
+              <label
+                htmlFor="userContext"
+                className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
+              >
+                Tell us about yourself
+              </label>
+              <textarea
+                id="userContext"
+                value={userContext}
+                onChange={(e) => setUserContext(e.target.value)}
+                placeholder="e.g., I live in San Francisco, prefer morning tasks, working on a React project..."
+                rows={6}
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm resize-none"
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1">
+                share your location, preferences, or context to help personalize task suggestions. completely optional.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleAboutYouSkip}
+                className="flex-1 px-4 py-3 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors font-bold text-xs uppercase tracking-wider"
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                onClick={handleAboutYouContinue}
+                className="flex-1 px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 transition-opacity font-bold text-xs uppercase tracking-wider"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'project' && (
+          <form onSubmit={handleProjectSubmit} className="space-y-6">
 
           <div>
             <label
@@ -378,14 +465,15 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
-          >
-            {loading ? (existingApiKey ? 'Creating...' : 'Setting up...') : existingApiKey ? 'Create Project' : 'Get Started'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
+            >
+              {loading ? (existingApiKey ? 'Creating...' : 'Setting up...') : existingApiKey ? 'Create Project' : 'Get Started'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

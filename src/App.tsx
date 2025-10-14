@@ -32,6 +32,7 @@ function App() {
   const [showContextFiles, setShowContextFiles] = useState<Set<string>>(new Set());
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [userContext, setUserContext] = useState("");
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('unchecked');
 
@@ -84,6 +85,11 @@ function App() {
               openaiInitResult.error
             );
           }
+        }
+
+        // Load user context if present
+        if (settings?.user_context) {
+          setUserContext(settings.user_context);
         }
 
         // Determine which project to load:
@@ -271,6 +277,7 @@ function App() {
         current_project: newProjectName,
         api_key: apiKey,
         openai_api_key: openaiApiKey || undefined,
+        user_context: userContext || undefined,
       });
 
       // Update project last_accessed time
@@ -853,10 +860,14 @@ function App() {
         <Settings
           currentApiKey={apiKey}
           currentOpenAIApiKey={openaiApiKey}
-          onSave={(newApiKey, newOpenaiApiKey) => {
+          currentUserContext={userContext}
+          onSave={(newApiKey, newOpenaiApiKey, newUserContext) => {
             setApiKey(newApiKey);
             if (newOpenaiApiKey) {
               setOpenaiApiKey(newOpenaiApiKey);
+            }
+            if (newUserContext !== undefined) {
+              setUserContext(newUserContext);
             }
             setShowSettings(false);
           }}
