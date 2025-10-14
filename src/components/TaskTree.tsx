@@ -916,12 +916,16 @@ const TaskRow: React.FC<TaskRowProps> = ({
         className="mt-2"
         style={{ marginLeft: `${(task.indent + depth) * 20 + 40}px` }}
       >
-        {task.subtasks!.map((subtask, index) => {
-          const isSubtaskFocused = focusedSubtaskId === subtask.id;
-          const isLastSubtask = index === task.subtasks!.length - 1;
+        {(() => {
           const completedCount = task.subtasks!.filter(s => s.checked).length;
 
           return (
+            <>
+              {task.subtasks!.map((subtask, index) => {
+                const isSubtaskFocused = focusedSubtaskId === subtask.id;
+                const isLastSubtask = index === task.subtasks!.length - 1;
+
+                return (
             <motion.div
               key={subtask.id}
               className="relative flex"
@@ -1026,22 +1030,25 @@ const TaskRow: React.FC<TaskRowProps> = ({
                 </div>
               </div>
             </motion.div>
-          );
-        })}
+                );
+              })}
 
-        {/* Progress indicator */}
-        <div className="mt-2 text-xs font-mono text-[#666666] flex items-center gap-2">
-          <span>PROGRESS:</span>
-          <div className="flex-1 h-[2px] bg-[#333333] relative max-w-[200px]">
-            <motion.div
-              className="absolute left-0 top-0 h-full bg-[#FF4D00]"
-              initial={{ width: 0 }}
-              animate={{ width: `${(completedCount / task.subtasks!.length) * 100}%` }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            />
-          </div>
-          <span>{completedCount}/{task.subtasks!.length}</span>
-        </div>
+              {/* Progress indicator */}
+              <div className="mt-2 text-xs font-mono text-[#666666] flex items-center gap-2">
+                <span>PROGRESS:</span>
+                <div className="flex-1 h-[2px] bg-[#333333] relative max-w-[200px]">
+                  <motion.div
+                    className="absolute left-0 top-0 h-full bg-[#FF4D00]"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(completedCount / task.subtasks!.length) * 100}%` }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  />
+                </div>
+                <span>{completedCount}/{task.subtasks!.length}</span>
+              </div>
+            </>
+          );
+        })()}
       </motion.div>
     )}
     </>
