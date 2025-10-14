@@ -278,6 +278,8 @@ interface TaskRowProps {
   isFormattingTaskId: string | null;
   depth?: number;
   showContextFiles: Set<string>;
+  focusedSubtaskId?: string | null;
+  onSubtaskFocus?: (subtaskId: string | null) => void;
 }
 
 const TaskRow: React.FC<TaskRowProps> = ({
@@ -299,6 +301,8 @@ const TaskRow: React.FC<TaskRowProps> = ({
   isFormattingTaskId,
   depth = 0,
   showContextFiles,
+  focusedSubtaskId,
+  onSubtaskFocus,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
@@ -902,33 +906,143 @@ const TaskRow: React.FC<TaskRowProps> = ({
       )}
     </div>
 
-    {/* Render subtasks if expanded */}
+    {/* Render subtasks as timeline if expanded */}
     {isExpanded && hasSubtasks && (
-      <>
-        {task.subtasks!.map((subtask) => (
-          <TaskRow
-            key={subtask.id}
-            task={subtask}
-            onToggle={onToggle}
-            onTextChange={onTextChange}
-            onIndentChange={onIndentChange}
-            onDelete={onDelete}
-            onMetadataChange={onMetadataChange}
-            onFormat={onFormat}
-            onFocus={onFocus}
-            isFocused={false}
-            isSelected={false}
-            isFirstSelected={false}
-            isLastSelected={false}
-            isExpanded={expandedTasks.has(subtask.id)}
-            onToggleExpand={onToggleExpand}
-            expandedTasks={expandedTasks}
-            isFormattingTaskId={isFormattingTaskId}
-            depth={depth + 1}
-            showContextFiles={showContextFiles}
-          />
-        ))}
-      </>
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        exit={{ opacity: 0, height: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="mt-2"
+        style={{ marginLeft: `${(task.indent + depth) * 20 + 40}px` }}
+      >
+        {task.subtasks!.map((subtask, index) => {
+          const isSubtaskFocused = focusedSubtaskId === subtask.id;
+          const isLastSubtask = index === task.subtasks!.length - 1;
+          const completedCount = task.subtasks!.filter(s => s.checked).length;
+
+          return (
+            <motion.div
+              key={subtask.id}
+              className="relative flex"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              {/* Timeline connector */}
+              <div className="relative flex-shrink-0 w-8 flex flex-col items-center">
+                {/* Vertical line */}
+                {!isLastSubtask && (
+                  <div
+                    className={`absolute top-6 left-1/2 -translate-x-1/2 w-[2px] h-full ${
+                      subtask.checked ? 'bg-[#FF4D00]' : 'bg-[#333333]'
+                    }`}
+                  />
+                )}
+
+                {/* Checkbox/node */}
+                <div className="relative z-10 mt-1">
+                  <Checkbox
+                    checked={subtask.checked}
+                    onCheckedChange={() => {
+                      onToggle(subtask.id);
+                      // Auto-advance to next unchecked subtask
+                      if (!subtask.checked && onSubtaskFocus) {
+                        const nextUnchecked = task.subtasks!.find((s, idx) => idx > index && !s.checked);
+                        if (nextUnchecked) {
+                          onSubtaskFocus(nextUnchecked.id);
+                        }
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Subtask content */}
+              <div className="flex-1 pb-4">
+                <div
+                  className={`border-l-2 pl-3 ${
+                    isSubtaskFocused ? 'border-l-[#FF4D00]' : 'border-l-transparent'
+                  }`}
+                  onClick={() => onSubtaskFocus && onSubtaskFocus(subtask.id)}
+                >
+                  {/* Subtask title */}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-sm font-mono ${
+                        subtask.checked ? 'line-through text-[#666666]' : 'text-[#E6E6E6]'
+                      }`}
+                    >
+                      {index + 1}. {subtask.text}
+                    </span>
+                    {isSubtaskFocused && (
+                      <span className="text-xs text-[#FF4D00] font-mono">◄── ACTIVE</span>
+                    )}
+                  </div>
+
+                  {/* Expanded metadata - only show for focused subtask */}
+                  {isSubtaskFocused && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.15 }}
+                      className="mt-2 space-y-1 text-xs font-mono"
+                    >
+                      {subtask.metadata?.deadline && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#888888]">├─ DUE:</span>
+                          <span className="text-[#E6E6E6]">{subtask.metadata.deadline}</span>
+                        </div>
+                      )}
+                      {subtask.metadata?.effort_estimate && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#888888]">├─ EST:</span>
+                          <span className="text-[#888888]">{subtask.metadata.effort_estimate}</span>
+                        </div>
+                      )}
+                      {subtask.metadata?.tags && subtask.metadata.tags.length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#888888]">├─ TAGS:</span>
+                          <span className="text-[#888888]">{subtask.metadata.tags.join(', ')}</span>
+                        </div>
+                      )}
+                      {subtask.metadata?.notes && subtask.metadata.notes.length > 0 && (
+                        <div className="space-y-1">
+                          {subtask.metadata.notes.map((note, noteIdx) => {
+                            const isLastNote = noteIdx === subtask.metadata!.notes!.length - 1;
+                            return (
+                              <div key={noteIdx} className="flex items-start gap-2">
+                                <span className="text-[#888888]">{isLastNote ? '└─' : '├─'}</span>
+                                <span className="text-[#888888] flex-1">{note}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+
+        {/* Progress indicator */}
+        <div className="mt-2 text-xs font-mono text-[#666666] flex items-center gap-2">
+          <span>PROGRESS:</span>
+          <div className="flex-1 h-[2px] bg-[#333333] relative max-w-[200px]">
+            <motion.div
+              className="absolute left-0 top-0 h-full bg-[#FF4D00]"
+              initial={{ width: 0 }}
+              animate={{ width: `${(completedCount / task.subtasks!.length) * 100}%` }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            />
+          </div>
+          <span>{completedCount}/{task.subtasks!.length}</span>
+        </div>
+      </motion.div>
     )}
     </>
   );
@@ -942,6 +1056,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingRelationshipsTaskId, setEditingRelationshipsTaskId] = useState<string | null>(null);
   const [formattingTaskId, setFormattingTaskId] = useState<string | null>(null);
+  const [focusedSubtaskMap, setFocusedSubtaskMap] = useState<Map<string, string>>(new Map());
 
   // Auto-expand tasks with subtasks (especially important for life admin)
   // Only expands NEW tasks, preserves user's manual collapse/expand choices
@@ -1192,23 +1307,47 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         return;
       }
 
-      // ArrowRight to expand
+      // ArrowRight to expand or navigate into subtasks
       if (e.key === 'ArrowRight' && focusedTaskId) {
         e.preventDefault();
         const task = flatTasks.find(t => t.id === focusedTaskId);
         if (task && task.subtasks && task.subtasks.length > 0) {
           if (!expandedTasks.has(focusedTaskId)) {
+            // Expand the task
             handleToggleExpand(focusedTaskId);
+            // Focus first subtask
+            setFocusedSubtaskMap(prev => {
+              const newMap = new Map(prev);
+              newMap.set(focusedTaskId, task.subtasks![0].id);
+              return newMap;
+            });
+          } else {
+            // Already expanded - focus first subtask if not already focused
+            if (!focusedSubtaskMap.has(focusedTaskId)) {
+              setFocusedSubtaskMap(prev => {
+                const newMap = new Map(prev);
+                newMap.set(focusedTaskId, task.subtasks![0].id);
+                return newMap;
+              });
+            }
           }
         }
         return;
       }
-      // ArrowLeft to collapse
+      // ArrowLeft to exit subtask navigation or collapse
       else if (e.key === 'ArrowLeft' && focusedTaskId) {
         e.preventDefault();
         const task = flatTasks.find(t => t.id === focusedTaskId);
         if (task && task.subtasks && task.subtasks.length > 0) {
-          if (expandedTasks.has(focusedTaskId)) {
+          if (focusedSubtaskMap.has(focusedTaskId)) {
+            // Exit subtask navigation
+            setFocusedSubtaskMap(prev => {
+              const newMap = new Map(prev);
+              newMap.delete(focusedTaskId);
+              return newMap;
+            });
+          } else if (expandedTasks.has(focusedTaskId)) {
+            // Collapse the task
             handleToggleExpand(focusedTaskId);
           }
         }
@@ -1225,7 +1364,21 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
 
         // Schedule navigation for next frame to throttle rapid keypresses
         navigationScheduledRef.current = requestAnimationFrame(() => {
-          if (!focusedTaskId && displayTasks.length > 0) {
+          // Check if we're in subtask navigation mode
+          if (focusedTaskId && focusedSubtaskMap.has(focusedTaskId)) {
+            const task = flatTasks.find(t => t.id === focusedTaskId);
+            if (task && task.subtasks) {
+              const currentSubtaskId = focusedSubtaskMap.get(focusedTaskId);
+              const currentIndex = task.subtasks.findIndex(s => s.id === currentSubtaskId);
+              const nextIndex = currentIndex < task.subtasks.length - 1 ? currentIndex + 1 : 0;
+
+              setFocusedSubtaskMap(prev => {
+                const newMap = new Map(prev);
+                newMap.set(focusedTaskId, task.subtasks![nextIndex].id);
+                return newMap;
+              });
+            }
+          } else if (!focusedTaskId && displayTasks.length > 0) {
             setFocusedTaskId(displayTasks[0].id);
             if (!e.shiftKey) {
               setSelectedTaskIds(new Set());
@@ -1263,7 +1416,21 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
 
         // Schedule navigation for next frame to throttle rapid keypresses
         navigationScheduledRef.current = requestAnimationFrame(() => {
-          if (focusedTaskId) {
+          // Check if we're in subtask navigation mode
+          if (focusedTaskId && focusedSubtaskMap.has(focusedTaskId)) {
+            const task = flatTasks.find(t => t.id === focusedTaskId);
+            if (task && task.subtasks) {
+              const currentSubtaskId = focusedSubtaskMap.get(focusedTaskId);
+              const currentIndex = task.subtasks.findIndex(s => s.id === currentSubtaskId);
+              const prevIndex = currentIndex > 0 ? currentIndex - 1 : task.subtasks.length - 1;
+
+              setFocusedSubtaskMap(prev => {
+                const newMap = new Map(prev);
+                newMap.set(focusedTaskId, task.subtasks![prevIndex].id);
+                return newMap;
+              });
+            }
+          } else if (focusedTaskId) {
             const currentIndex = displayTasks.findIndex(t => t.id === focusedTaskId);
             const prevIndex = currentIndex > 0 ? currentIndex - 1 : displayTasks.length - 1;
             const prevTaskId = displayTasks[prevIndex].id;
@@ -1896,6 +2063,18 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
                       expandedTasks={expandedTasks}
                       isFormattingTaskId={formattingTaskId}
                       showContextFiles={showContextFiles}
+                      focusedSubtaskId={focusedSubtaskMap.get(task.id) || null}
+                      onSubtaskFocus={(subtaskId) => {
+                        setFocusedSubtaskMap(prev => {
+                          const newMap = new Map(prev);
+                          if (subtaskId) {
+                            newMap.set(task.id, subtaskId);
+                          } else {
+                            newMap.delete(task.id);
+                          }
+                          return newMap;
+                        });
+                      }}
                     />
                   </motion.div>
                 );
