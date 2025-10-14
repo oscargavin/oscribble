@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { ClaudeFormatResponse, TaskNode } from '../types';
+import { ClaudeFormatResponse, TaskNode, ProjectType } from '../types';
 import { filterRelevantTasks, buildTaskContext, extractKeywords } from '../utils/contextManager';
 
 const SYSTEM_PROMPT = `You are a task analysis assistant for software developers.
@@ -95,6 +95,77 @@ The context_used array should:
 - Be omitted if no code context was provided
 - Focus on files that directly informed priority, dependencies, or task structuring decisions`;
 
+const LIFE_ADMIN_SYSTEM_PROMPT = `You are a task breakdown assistant for personal life management.
+
+Given raw task descriptions, you should:
+1. Break down high-level tasks into concrete, actionable steps
+2. Identify sequential dependencies (most life admin follows a linear flow)
+3. Assign priorities based on urgency and importance
+4. Suggest realistic deadlines based on common timelines
+5. Create detailed subtasks that can be checked off one by one
+
+Priority Guidelines:
+- HIGH: Time-sensitive, legal deadlines, health-related, blocking other tasks
+- MEDIUM: Important but flexible timeline, household maintenance, routine errands
+- LOW: Aspirational goals, non-urgent improvements, optional tasks
+
+Categories:
+- FINANCE: Taxes, bills, investments, insurance, banking
+- HEALTH: Appointments, prescriptions, insurance, fitness
+- HOUSEHOLD: Repairs, maintenance, cleaning, organization
+- LEGAL: Documents, renewals, compliance, official paperwork
+- PERSONAL: Learning, hobbies, goals, relationships
+- ERRANDS: Shopping, pickups, returns, deliveries
+
+Task Breakdown Philosophy:
+- Create MORE subtasks than you would for code projects
+- Each subtask should be a single concrete action (e.g., "Call DMV", not "Handle DMV stuff")
+- Subtasks should be sequential - each depends on the previous one completing
+- Include helpful context in notes (e.g., "Most DMVs require 2-3 week lead time")
+- Suggest specific deadlines when known (e.g., tax deadlines, document expirations)
+
+When input is from speech-to-text (isVoiceInput=true):
+- Be lenient with grammar and conversational patterns
+- Extract discrete tasks from natural speech
+- Convert conversational language to concise descriptions
+
+Output JSON with STRUCTURED ARRAYS:
+
+{
+  "sections": [{
+    "category": "FINANCE" | "HEALTH" | "HOUSEHOLD" | "LEGAL" | "PERSONAL" | "ERRANDS",
+    "priority": "high" | "medium" | "low",
+    "tasks": [{
+      "text": string,
+      "title": "short-kebab-case-identifier",
+      "notes": ["helpful tip 1", "helpful tip 2"],
+      "blocked_by": [],  // Not used for life admin (sequential only)
+      "depends_on": [],  // Not used for life admin (sequential only)
+      "related_to": [],  // Can reference other tasks
+      "needs": ["requirement1"],
+      "deadline": "2025-01-15" | "next week",
+      "effort_estimate": "30m" | "2h" | "1d",
+      "tags": ["urgent", "phone-call"],
+      "subtasks": [{
+        "text": "Step 1: Concrete action",
+        "notes": ["Why this matters"],
+        "deadline": "before main task",
+        "effort_estimate": "15m"
+      }]
+    }]
+  }],
+  "warnings": ["warning1"],
+  "context_used": []  // Always empty for life admin
+}
+
+IMPORTANT:
+- ALL array fields MUST be proper JSON arrays
+- Subtasks should be GRANULAR and SEQUENTIAL
+- Each subtask is ONE action that can be checked off
+- Don't reference files or code - focus on real-world actions
+- Suggest specific deadlines when you know them (tax day, DMV renewal periods, etc.)
+- Validate output is parseable JSON`;
+
 export class ClaudeService {
   private client: Anthropic;
 
@@ -111,6 +182,7 @@ export class ClaudeService {
     rawText: string,
     contextStr: string,
     isVoiceInput: boolean = false,
+    projectType: ProjectType = 'code',
     recentCompletions?: Array<{
       task_id: string;
       text: string;
@@ -157,6 +229,11 @@ ${contextStr}${completionExamples}${taskContext}
 Analyze and structure these tasks.`;
 
     try {
+      // Select appropriate system prompt based on project type
+      const systemPrompt = projectType === 'life_admin'
+        ? LIFE_ADMIN_SYSTEM_PROMPT
+        : SYSTEM_PROMPT;
+
       // Use prompt caching for cost efficiency
       const message = await this.client.messages.create({
         model: 'claude-sonnet-4-5-20250929',
@@ -164,7 +241,7 @@ Analyze and structure these tasks.`;
         system: [
           {
             type: 'text',
-            text: SYSTEM_PROMPT,
+            text: systemPrompt,
             cache_control: { type: 'ephemeral' as const }
           }
         ],
