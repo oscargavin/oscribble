@@ -123,7 +123,19 @@ export class StorageService {
    * Get notes for a project
    */
   static async getNotes(projectName: string): Promise<NotesFile | null> {
-    const notesPath = path.join(APP_DIR, projectName, 'notes.json');
+    // Get project to determine storage location
+    const projects = await this.getProjects();
+    const project = projects.find(p => p.name === projectName);
+
+    let notesPath: string;
+    if (project && project.type === 'life_admin') {
+      // Life admin: store in app data directory
+      notesPath = path.join(APP_DIR, projectName, 'notes.json');
+    } else {
+      // Code project: store in app data directory (same location for now)
+      notesPath = path.join(APP_DIR, projectName, 'notes.json');
+    }
+
     try {
       const data = await fs.readFile(notesPath, 'utf-8');
       const parsed = JSON.parse(data);
@@ -149,7 +161,19 @@ export class StorageService {
    * Save notes for a project
    */
   static async saveNotes(projectName: string, notes: NotesFile): Promise<void> {
-    const notesPath = path.join(APP_DIR, projectName, 'notes.json');
+    // Get project to determine storage location
+    const projects = await this.getProjects();
+    const project = projects.find(p => p.name === projectName);
+
+    let notesPath: string;
+    if (project && project.type === 'life_admin') {
+      // Life admin: store in app data directory
+      notesPath = path.join(APP_DIR, projectName, 'notes.json');
+    } else {
+      // Code project: store in app data directory (same location for now)
+      notesPath = path.join(APP_DIR, projectName, 'notes.json');
+    }
+
     await this.atomicWrite(notesPath, JSON.stringify(notes, null, 2));
   }
 

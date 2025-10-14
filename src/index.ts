@@ -29,11 +29,22 @@ const fileWatchers = new Map<BrowserWindow, { watcher: fs.FSWatcher; timeout: No
 /**
  * Start watching a project's notes.json file for external changes
  */
-function startWatchingProject(window: BrowserWindow, projectName: string) {
+async function startWatchingProject(window: BrowserWindow, projectName: string) {
   // Stop any existing watcher for this window
   stopWatchingProject(window);
 
-  const notesPath = path.join(os.homedir(), '.project-stickies', projectName, 'notes.json');
+  // Get project to determine storage location
+  const projects = await StorageService.getProjects();
+  const project = projects.find(p => p.name === projectName);
+
+  let notesPath: string;
+  if (project && project.type === 'life_admin') {
+    // Life admin: store in app data directory
+    notesPath = path.join(os.homedir(), '.project-stickies', projectName, 'notes.json');
+  } else {
+    // Code project: store in app data directory (same location for now)
+    notesPath = path.join(os.homedir(), '.project-stickies', projectName, 'notes.json');
+  }
 
   try {
     const watcher = fs.watch(notesPath, (eventType) => {
@@ -567,7 +578,7 @@ ipcMain.handle('close-window', async (event) => {
 ipcMain.handle('start-watching-project', async (event, projectName: string) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (window) {
-    startWatchingProject(window, projectName);
+    await startWatchingProject(window, projectName);
   }
   return { success: true };
 });
