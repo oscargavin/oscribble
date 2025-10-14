@@ -59,6 +59,7 @@ export interface AppSettings {
   current_project?: string;
   api_key?: string; // Anthropic API key
   openai_api_key?: string; // OpenAI API key
+  user_context?: string; // Free-form text about the user (location, preferences, etc.) for personalizing life admin tasks
 }
 
 export interface ClaudeFormatResponse {
