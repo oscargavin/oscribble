@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { TaskNode } from '../types';
 import { Checkbox } from './ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,6 +23,29 @@ interface EmptyStateProps {
   filterMode: FilterMode;
   hasVoice?: boolean;
 }
+
+// Animation variants for staggered fade-in effect
+const containerVariants: Variants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08, // 80ms delay between each task for more noticeable cascade
+    }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.2,
+      ease: [0.0, 0.0, 0.2, 1.0] as const // easeOut cubic bezier
+    }
+  }
+};
 
 const EmptyState: React.FC<EmptyStateProps> = ({ filterMode, hasVoice = false }) => {
   const getEmptyMessage = (): string => {
@@ -1801,37 +1825,50 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         {displayTasks.length === 0 ? (
           <EmptyState filterMode={filterMode} hasVoice={hasVoice} />
         ) : (
-          displayTasks.map((task, index) => {
-            // Determine if this is the first or last selected task in display order
-            const selectedIndices = displayTasks
-              .map((t, i) => (selectedTaskIds.has(t.id) ? i : -1))
-              .filter(i => i !== -1);
-            const firstSelectedIndex = selectedIndices[0];
-            const lastSelectedIndex = selectedIndices[selectedIndices.length - 1];
+          <AnimatePresence mode="sync">
+            <motion.div
+              key={projectName}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {displayTasks.map((task, index) => {
+                // Determine if this is the first or last selected task in display order
+                const selectedIndices = displayTasks
+                  .map((t, i) => (selectedTaskIds.has(t.id) ? i : -1))
+                  .filter(i => i !== -1);
+                const firstSelectedIndex = selectedIndices[0];
+                const lastSelectedIndex = selectedIndices[selectedIndices.length - 1];
 
-            return (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onToggle={handleToggle}
-                onTextChange={handleTextChange}
-                onIndentChange={handleIndentChange}
-                onDelete={handleDelete}
-                onMetadataChange={handleMetadataChange}
-                onFormat={handleFormat}
-                onFocus={setFocusedTaskId}
-                isFocused={task.id === focusedTaskId}
-                isSelected={selectedTaskIds.has(task.id)}
-                isFirstSelected={index === firstSelectedIndex}
-                isLastSelected={index === lastSelectedIndex}
-                isExpanded={expandedTasks.has(task.id)}
-                onToggleExpand={handleToggleExpand}
-                expandedTasks={expandedTasks}
-                isFormattingTaskId={formattingTaskId}
-                showContextFiles={showContextFiles}
-              />
-            );
-          })
+                return (
+                  <motion.div
+                    key={task.id}
+                    variants={itemVariants}
+                  >
+                    <TaskRow
+                      task={task}
+                      onToggle={handleToggle}
+                      onTextChange={handleTextChange}
+                      onIndentChange={handleIndentChange}
+                      onDelete={handleDelete}
+                      onMetadataChange={handleMetadataChange}
+                      onFormat={handleFormat}
+                      onFocus={setFocusedTaskId}
+                      isFocused={task.id === focusedTaskId}
+                      isSelected={selectedTaskIds.has(task.id)}
+                      isFirstSelected={index === firstSelectedIndex}
+                      isLastSelected={index === lastSelectedIndex}
+                      isExpanded={expandedTasks.has(task.id)}
+                      onToggleExpand={handleToggleExpand}
+                      expandedTasks={expandedTasks}
+                      isFormattingTaskId={formattingTaskId}
+                      showContextFiles={showContextFiles}
+                    />
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
         )}
         </div>
       </div>

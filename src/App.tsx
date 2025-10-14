@@ -269,7 +269,10 @@ function App() {
         last_accessed: Date.now(),
       });
 
-      // Update UI state immediately with new project data
+      // Clear tasks FIRST to prevent flash of wrong project's tasks
+      setTasks([]);
+
+      // Then update project identity
       setProjectName(newProjectName);
       setProjectRoot(project.path);
 
