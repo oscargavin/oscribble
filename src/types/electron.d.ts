@@ -1,4 +1,4 @@
-import { GatheredContext } from './index';
+import { GatheredContext, ProjectType, ClaudeFormatResponse, ProjectSettings } from './index';
 
 export interface IPCResponse<T = any> {
   success: boolean;
@@ -13,7 +13,7 @@ export interface ElectronAPI {
   getSettings: () => Promise<any>;
   saveSettings: (settings: any) => Promise<{ success: boolean; error?: string }>;
   getProjects: () => Promise<any[]>;
-  addProject: (project: any) => Promise<{ success: boolean; error?: string }>;
+  addProject: (project: ProjectSettings) => Promise<{ success: boolean; error?: string }>;
   updateProject: (project: any) => Promise<{ success: boolean; error?: string }>;
   deleteProject: (projectName: string) => Promise<{ success: boolean; error?: string }>;
   getNotes: (projectName: string) => Promise<any>;
@@ -35,8 +35,9 @@ export interface ElectronAPI {
     rawText: string,
     contextStr: string,
     isVoiceInput?: boolean,
-    projectName?: string
-  ) => Promise<{ success: boolean; data?: any; error?: string }>;
+    projectName?: string,
+    projectType?: ProjectType
+  ) => Promise<{ success: boolean; data?: ClaudeFormatResponse; error?: string }>;
   formatSingleTask: (
     taskText: string,
     projectRoot: string
