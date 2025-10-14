@@ -322,10 +322,24 @@ ipcMain.handle('gather-project-context', async (_, rawText: string, projectRoot:
 });
 
 // Format with Claude
-ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false, projectName?: string) => {
+ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false, projectName?: string, projectType?: string) => {
   try {
     if (!claudeService) {
       throw new Error('Claude service not initialized');
+    }
+
+    // Get project to determine type if not provided
+    let finalProjectType = projectType || 'code';
+    if (projectName) {
+      try {
+        const projects = await StorageService.getProjects();
+        const project = projects.find(p => p.name === projectName);
+        if (project && project.type) {
+          finalProjectType = project.type;
+        }
+      } catch (error) {
+        console.warn('Failed to load project type, defaulting to code:', error);
+      }
     }
 
     // Get recent completions for few-shot learning if project specified
@@ -349,7 +363,7 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
       }
     }
 
-    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, recentCompletions, existingTasks);
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };
@@ -732,7 +746,44 @@ ipcMain.handle('get-priority-edit-stats', async (_, projectName: string) => {
   }
 });
 
+/**
+ * Migrate existing projects to include type field
+ * Defaults all projects without a type to 'code'
+ */
+async function migrateProjectsToIncludeType() {
+  try {
+    const projects = await StorageService.getProjects();
+    let needsMigration = false;
+
+    const migratedProjects = projects.map(project => {
+      if (!project.type) {
+        needsMigration = true;
+        console.log(`Migrating project "${project.name}" to type: code`);
+        return {
+          ...project,
+          type: 'code' as const
+        };
+      }
+      return project;
+    });
+
+    if (needsMigration) {
+      // Save migrated projects
+      const projectsPath = path.join(os.homedir(), '.project-stickies', 'projects.json');
+      const { promises: fsPromises } = require('fs');
+      await fsPromises.writeFile(projectsPath, JSON.stringify(migratedProjects, null, 2), 'utf-8');
+      console.log('Successfully migrated projects to include type field');
+    } else {
+      console.log('No project migration needed - all projects have type field');
+    }
+  } catch (error) {
+    console.error('Migration failed:', error);
+    // Don't throw - we want the app to continue even if migration fails
+  }
+}
+
 // Initialize storage on app ready
 app.whenReady().then(async () => {
   await StorageService.initialize();
+  await migrateProjectsToIncludeType();
 });
