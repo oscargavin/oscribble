@@ -942,6 +942,36 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [editingRelationshipsTaskId, setEditingRelationshipsTaskId] = useState<string | null>(null);
   const [formattingTaskId, setFormattingTaskId] = useState<string | null>(null);
+
+  // Auto-expand tasks with subtasks (especially important for life admin)
+  // Only expands NEW tasks, preserves user's manual collapse/expand choices
+  useEffect(() => {
+    const newTasksWithSubtasks: string[] = [];
+
+    const findTasksWithSubtasks = (taskList: TaskNode[]) => {
+      for (const task of taskList) {
+        if (task.subtasks && task.subtasks.length > 0 && !expandedTasks.has(task.id)) {
+          // Only add if not already in expandedTasks (i.e., it's a new task)
+          newTasksWithSubtasks.push(task.id);
+          // Recursively find nested subtasks
+          findTasksWithSubtasks(task.subtasks);
+        }
+        if (task.children.length > 0) {
+          findTasksWithSubtasks(task.children);
+        }
+      }
+    };
+
+    findTasksWithSubtasks(tasks);
+
+    if (newTasksWithSubtasks.length > 0) {
+      setExpandedTasks(prev => {
+        const newSet = new Set(prev);
+        newTasksWithSubtasks.forEach(id => newSet.add(id));
+        return newSet;
+      });
+    }
+  }, [tasks]);
   const containerRef = useRef<HTMLDivElement>(null);
   const newTaskInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
