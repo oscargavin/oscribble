@@ -4,6 +4,7 @@ import { ContextService } from './services/context';
 import { ClaudeService } from './services/claude';
 import { OpenAIService } from './services/openai';
 import AutoContextService from './services/auto-context';
+import { ProjectType } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -329,7 +330,7 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
     }
 
     // Get project to determine type if not provided
-    let finalProjectType = projectType || 'code';
+    let finalProjectType: ProjectType = (projectType as ProjectType) || 'code';
     if (projectName) {
       try {
         const projects = await StorageService.getProjects();

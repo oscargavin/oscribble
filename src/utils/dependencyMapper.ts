@@ -50,7 +50,7 @@ export function ensureTaskTitle(task: ClaudeTask | TaskNode): string {
     return task.metadata?.title || generateTitleFromText(task.text);
   } else {
     // ClaudeTask
-    return task.title || generateTitleFromText(task.text);
+    return (task as ClaudeTask).title || generateTitleFromText(task.text);
   }
 }
 
