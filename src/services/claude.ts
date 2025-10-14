@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { ClaudeFormatResponse } from '../types';
+import { ClaudeFormatResponse, TaskNode } from '../types';
+import { filterRelevantTasks, buildTaskContext, extractKeywords } from '../utils/contextManager';
 
 const SYSTEM_PROMPT = `You are a task analysis assistant for software developers.
 
@@ -32,10 +33,11 @@ Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
     "priority": "high" | "medium" | "low",  // Task priority level
     "tasks": [{
       "text": string,
+      "title": "short-kebab-case-identifier",         // Unique slug for dependencies
       "notes": ["insight1", "insight2"],              // Array of strings
       "blocked_by": ["task_id1", "task_id2"],        // Legacy (use depends_on)
-      "depends_on": ["task_id1", "task_id2"],        // Task dependencies
-      "related_to": ["task_id1", "task_id2"],        // Related tasks
+      "depends_on": ["existing-task-title", 0],      // Task dependencies (by title or index)
+      "related_to": ["another-task-title", 1],       // Related tasks (by title or index)
       "needs": ["requirement1", "requirement2"],     // Array of strings
       "deadline": "2025-01-15" | "next week",        // Optional: ISO or human
       "effort_estimate": "2h" | "1d" | "3 days",     // Optional: time estimate
@@ -49,6 +51,17 @@ Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
     "reason": "Modified voice recording initialization"
   }]
 }
+
+## Task Titles & Dependencies
+
+Each task should have a unique "title" field - a short kebab-case identifier (e.g., "fix-auth-bug", "add-dark-mode").
+
+When referencing dependencies:
+- For existing tasks: Use their "title" from the context (e.g., depends_on: ["setup-database", "create-schema"])
+- For new tasks in the same batch: Use array index (e.g., if task 3 depends on task 0, use depends_on: [0])
+- Mix both: depends_on: ["existing-task-title", 2] is valid
+
+Generate meaningful titles that describe the task essence, not generic names like "task-1".
 
 IMPORTANT:
 - ALL array fields (notes, blocked_by, depends_on, related_to, needs, tags, warnings) MUST be proper JSON arrays
@@ -104,7 +117,8 @@ export class ClaudeService {
       estimated_time?: string;
       actual_time: number;
       completed_at: number;
-    }>
+    }>,
+    existingTasks?: TaskNode[]
   ): Promise<ClaudeFormatResponse> {
     // Build few-shot examples from recent completions if available
     let completionExamples = '';
@@ -123,23 +137,46 @@ export class ClaudeService {
       completionExamples += '\nUse these examples to calibrate your effort estimates for similar tasks.\n';
     }
 
+    // Filter and compress existing tasks for context
+    let taskContext = '';
+    if (existingTasks && existingTasks.length > 0) {
+      const keywords = extractKeywords(rawText);
+      const relevantTasks = filterRelevantTasks(existingTasks, keywords, {
+        maxTasks: 50,
+        includeDays: 7,
+      });
+      taskContext = buildTaskContext(relevantTasks);
+    }
+
     const prompt = `Raw tasks${isVoiceInput ? ' (from voice transcription)' : ''}:
 ${rawText}
 
-Context:
-${contextStr}${completionExamples}
+Code context:
+${contextStr}${completionExamples}${taskContext}
 
 Analyze and structure these tasks.`;
 
     try {
+      // Use prompt caching for cost efficiency
       const message = await this.client.messages.create({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4000,
-        system: SYSTEM_PROMPT,
+        system: [
+          {
+            type: 'text',
+            text: SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' as const }
+          }
+        ],
         messages: [
           {
             role: 'user',
-            content: prompt,
+            content: [
+              {
+                type: 'text',
+                text: prompt,
+              }
+            ],
           },
         ],
       });

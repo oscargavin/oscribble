@@ -319,15 +319,26 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
 
     // Get recent completions for few-shot learning if project specified
     let recentCompletions;
+    let existingTasks;
     if (projectName) {
       try {
         recentCompletions = await StorageService.getRecentCompletions(projectName, 10);
       } catch (error) {
         console.warn('Failed to load recent completions for few-shot learning:', error);
       }
+
+      // Load existing tasks for dependency context
+      try {
+        const notes = await StorageService.getNotes(projectName);
+        if (notes && notes.tasks) {
+          existingTasks = notes.tasks;
+        }
+      } catch (error) {
+        console.warn('Failed to load existing tasks for dependency context:', error);
+      }
     }
 
-    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, recentCompletions);
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, recentCompletions, existingTasks);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };

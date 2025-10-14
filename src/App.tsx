@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Mic, Loader2, FileText, ListTodo, Circle, Check, AlertCircle, Ban, List } from "lucide-react";
+import { Mic, Loader2, FileText, ListTodo, Circle, Check, AlertCircle, Ban, List, Network } from "lucide-react";
 import { Setup } from "./components/Setup";
 import { RawInput } from "./components/RawInput";
 import { TaskTree } from "./components/TaskTree";
+import { TaskMapView } from "./components/TaskMapView";
 import { Settings } from "./components/Settings";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
 import { QuickSwitcher } from "./components/QuickSwitcher";
@@ -10,9 +11,10 @@ import { TaskNode, NotesFile, ClaudeFormatResponse } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { useProjects } from "./hooks/useProjects";
 import { useVoiceRecording } from "./hooks/useVoiceRecording";
+import { mapDependencyReferences, ensureTaskTitle, normalizeReferences } from "./utils/dependencyMapper";
 import logo from "./oscribble-logo.png";
 
-type View = "setup" | "raw" | "tasks";
+type View = "setup" | "raw" | "tasks" | "map";
 type FilterMode = 'all' | 'unchecked' | 'complete' | 'high' | 'blocked';
 
 function App() {
@@ -178,9 +180,14 @@ function App() {
         }
       }
       // Toggle between raw and tasks view: Cmd+T
-      if ((e.metaKey || e.ctrlKey) && e.key === "t" && (tasks.length > 0 || view === "tasks")) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "t" && (tasks.length > 0 || view === "tasks" || view === "map")) {
         e.preventDefault();
         toggleView();
+      }
+      // Toggle to map view: Cmd+M
+      if ((e.metaKey || e.ctrlKey) && e.key === "m" && (tasks.length > 0 || view === "map")) {
+        e.preventDefault();
+        setView(view === "map" ? "tasks" : "map");
       }
     };
 
@@ -530,6 +537,8 @@ function App() {
       for (const section of response.sections) {
         for (const task of section.tasks) {
           const priority = section.priority as "high" | "medium" | "low";
+          const taskTitle = ensureTaskTitle(task);
+
           newTasks.push({
             id: uuidv4(),
             text: task.text,
@@ -537,12 +546,13 @@ function App() {
             indent: 0,
             children: [],
             metadata: {
+              title: taskTitle,
               priority: priority,
               original_priority: priority, // Store Claude's original suggestion
               priority_edited: false, // Not yet edited by user
               blocked_by: task.blocked_by,
-              depends_on: task.depends_on,
-              related_to: task.related_to,
+              depends_on: undefined, // Will be mapped below
+              related_to: undefined, // Will be mapped below
               notes: task.notes, // Now passed as array directly
               deadline: task.deadline,
               effort_estimate: task.effort_estimate,
@@ -551,6 +561,36 @@ function App() {
               context_files: contextFiles, // Files that were analyzed for this task
             },
           });
+        }
+      }
+
+      // Second pass: Map dependency references to UUIDs
+      let taskIndex = 0;
+      for (const section of response.sections) {
+        for (const task of section.tasks) {
+          const currentTask = newTasks[taskIndex];
+
+          // Map depends_on references
+          if (task.depends_on) {
+            const normalized = normalizeReferences(task.depends_on);
+            currentTask.metadata!.depends_on = mapDependencyReferences(
+              normalized,
+              newTasks,
+              tasks
+            );
+          }
+
+          // Map related_to references
+          if (task.related_to) {
+            const normalized = normalizeReferences(task.related_to);
+            currentTask.metadata!.related_to = mapDependencyReferences(
+              normalized,
+              newTasks,
+              tasks
+            );
+          }
+
+          taskIndex++;
         }
       }
 
@@ -686,14 +726,27 @@ function App() {
             </button>
           )}
           {/* Toggle button - placed after filter to prevent layout shifts */}
-          {(tasks.length > 0 || view === "tasks") && (
-            <button
-              onClick={toggleView}
-              className="h-[28px] w-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
-              title={view === "raw" ? "Switch to tasks view (Cmd+T)" : "Switch to raw view (Cmd+T)"}
-            >
-              {view === "raw" ? <ListTodo size={16} /> : <FileText size={16} />}
-            </button>
+          {(tasks.length > 0 || view === "tasks" || view === "map") && (
+            <>
+              <button
+                onClick={toggleView}
+                className="h-[28px] w-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+                title={view === "raw" ? "Switch to tasks view (Cmd+T)" : "Switch to raw view (Cmd+T)"}
+              >
+                {view === "raw" ? <ListTodo size={16} /> : <FileText size={16} />}
+              </button>
+              <button
+                onClick={() => setView(view === "map" ? "tasks" : "map")}
+                className={`h-[28px] w-[28px] flex items-center justify-center border transition-colors duration-200 ${
+                  view === "map"
+                    ? "border-[#FF4D00] text-[#FF4D00]"
+                    : "border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]"
+                }`}
+                title={view === "map" ? "Switch to list view (Cmd+M)" : "Switch to map view (Cmd+M)"}
+              >
+                <Network size={16} />
+              </button>
+            </>
           )}
           {/* Voice Recording Button */}
           <button
@@ -752,6 +805,14 @@ function App() {
             showContextFiles={showContextFiles}
             setShowContextFiles={setShowContextFiles}
             hasVoice={!!openaiApiKey}
+          />
+        )}
+        {view === "map" && (
+          <TaskMapView
+            tasks={tasks}
+            onUpdate={handleTaskUpdate}
+            projectRoot={projectRoot}
+            projectName={projectName}
           />
         )}
       </div>

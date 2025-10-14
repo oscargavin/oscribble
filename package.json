@@ -1,7 +1,7 @@
 {
   "name": "oscribble",
   "productName": "Oscribble",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A brutalist task manager that transforms raw notes into AI-analyzed, structured task lists",
   "main": ".webpack/main",
   "scripts": {
@@ -29,6 +29,7 @@
     "@electron-forge/plugin-webpack": "^7.10.2",
     "@electron/fuses": "^1.8.0",
     "@tailwindcss/postcss": "^4.1.14",
+    "@types/dagre": "^0.7.53",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
@@ -55,12 +56,14 @@
     "@types/react-dom": "^19.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dagre": "^0.8.5",
     "electron-squirrel-startup": "^1.0.1",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.545.0",
     "openai": "^6.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "reactflow": "^11.11.4",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0"
   }

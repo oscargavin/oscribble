@@ -6,6 +6,7 @@ export interface TaskNode {
   children: TaskNode[];
   subtasks?: TaskNode[];   // Explicit subtasks (distinct from hierarchical children)
   metadata?: {
+    title?: string;        // Short unique identifier for dependency references (e.g., "auth-fix", "db-setup")
     priority?: 'high' | 'medium' | 'low';  // User-editable priority
     original_priority?: 'high' | 'medium' | 'low';  // Claude's original suggestion (for learning)
     priority_edited?: boolean; // Whether user has edited priority
@@ -66,10 +67,11 @@ export interface ClaudeSection {
 
 export interface ClaudeTask {
   text: string;
+  title?: string;            // Short unique identifier for dependencies
   notes: string[];           // Structured array of insights
   blocked_by: string[];      // Legacy field
-  depends_on?: string[];     // Task dependencies
-  related_to?: string[];     // Related tasks
+  depends_on?: string[];     // Task dependencies (references by title or index)
+  related_to?: string[];     // Related tasks (references by title or index)
   needs: string[];           // Requirements
   deadline?: string;         // ISO date or human-readable
   effort_estimate?: string;  // Time estimate
