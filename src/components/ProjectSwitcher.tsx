@@ -124,6 +124,9 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
                     {hotkeyNumber}
                   </span>
                 )}
+                <span className="text-sm flex-shrink-0">
+                  {project.type === 'life_admin' ? '📋' : '🔧'}
+                </span>
                 <span className="font-mono truncate">{project.name}</span>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
