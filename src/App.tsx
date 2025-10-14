@@ -820,6 +820,7 @@ function App() {
             initialValue={rawText}
             projectName={projectName}
             projectRoot={projectRoot}
+            shouldShowFileTree={getContextStrategy(projectType).shouldShowFileTree()}
             onFormat={handleFormat}
           />
         )}

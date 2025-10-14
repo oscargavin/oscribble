@@ -5,6 +5,7 @@ interface RawInputProps {
   initialValue: string;
   projectName: string;
   projectRoot: string;
+  shouldShowFileTree?: boolean;  // NEW: Whether to show file-related features
   onFormat: (rawText: string, contextStr: string, isVoiceInput?: boolean, contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]) => Promise<void>;
 }
 
@@ -12,6 +13,7 @@ export const RawInput: React.FC<RawInputProps> = ({
   initialValue,
   projectName,
   projectRoot,
+  shouldShowFileTree = true,  // Default to true for backward compatibility
   onFormat,
 }) => {
   const [rawText, setRawText] = useState(initialValue);
@@ -29,8 +31,10 @@ export const RawInput: React.FC<RawInputProps> = ({
     setRawText(initialValue);
   }, [initialValue]);
 
-  // Load project files on mount or when project changes
+  // Load project files on mount or when project changes (only for code projects)
   useEffect(() => {
+    if (!shouldShowFileTree) return;  // Skip for life admin projects
+
     const loadFiles = async () => {
       const result = await window.electronAPI.getProjectFiles(projectRoot);
       if (result.success) {
@@ -38,7 +42,7 @@ export const RawInput: React.FC<RawInputProps> = ({
       }
     };
     loadFiles();
-  }, [projectRoot]);
+  }, [projectRoot, shouldShowFileTree]);
 
   // Auto-focus textarea on mount and position cursor at end
   useEffect(() => {
@@ -203,6 +207,9 @@ export const RawInput: React.FC<RawInputProps> = ({
     setRawText(newText);
     setCursorPosition(cursorPos);
 
+    // Only handle @mentions for code projects
+    if (!shouldShowFileTree) return;
+
     // Check if @ was just typed
     const textBeforeCursor = newText.substring(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -252,38 +259,43 @@ export const RawInput: React.FC<RawInputProps> = ({
 
   const handleFormat = async () => {
     setFormatting(true);
-    setFormatStatus('GATHERING');
     try {
-      // Gather context from @mentions and auto-discovery
-      const contextResult = await window.electronAPI.gatherProjectContext(
-        rawText,
-        projectRoot
-      );
-
-      if (!contextResult.success) {
-        throw new Error(contextResult.error || 'Failed to gather context');
-      }
-
-      // Format gathered context for Claude
       let contextString = '';
       let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
-      if (contextResult.data) {
-        const gc = contextResult.data;
-        contextString = gc.files.map(f => {
-          const header = f.wasGrepped
-            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
-            : `--- ${f.path} ---`;
-          return `${header}\n${f.content}`;
-        }).join('\n\n');
 
-        // Extract file metadata for storage with tasks
-        contextFiles = gc.files.map(f => ({
-          path: f.path,
-          wasGrepped: f.wasGrepped,
-          matchedKeywords: f.matchedKeywords
-        }));
+      // Only gather context for code projects
+      if (shouldShowFileTree && projectRoot) {
+        setFormatStatus('GATHERING');
 
-        console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+        // Gather context from @mentions and auto-discovery
+        const contextResult = await window.electronAPI.gatherProjectContext(
+          rawText,
+          projectRoot
+        );
+
+        if (!contextResult.success) {
+          throw new Error(contextResult.error || 'Failed to gather context');
+        }
+
+        // Format gathered context for Claude
+        if (contextResult.data) {
+          const gc = contextResult.data;
+          contextString = gc.files.map(f => {
+            const header = f.wasGrepped
+              ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+              : `--- ${f.path} ---`;
+            return `${header}\n${f.content}`;
+          }).join('\n\n');
+
+          // Extract file metadata for storage with tasks
+          contextFiles = gc.files.map(f => ({
+            path: f.path,
+            wasGrepped: f.wasGrepped,
+            matchedKeywords: f.matchedKeywords
+          }));
+
+          console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+        }
       }
 
       setFormatStatus('ANALYZING');
@@ -306,7 +318,7 @@ export const RawInput: React.FC<RawInputProps> = ({
           <h2 className="text-xs font-mono text-[#E6E6E6] uppercase tracking-wider">
             [RAW INPUT]
           </h2>
-          {mentions.length > 0 && (
+          {shouldShowFileTree && mentions.length > 0 && (
             <span className="text-xs text-[#FF4D00] font-mono">
               {mentions.length} @{mentions.length !== 1 ? 'FILES' : 'FILE'}
             </span>
@@ -344,13 +356,21 @@ export const RawInput: React.FC<RawInputProps> = ({
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             disabled={formatting}
-            placeholder="Enter your tasks here...
+            placeholder={shouldShowFileTree
+              ? `Enter your tasks here...
 
 Examples:
 - Fix login bug
 - Optimize database queries
 - Type @ to mention files
-- Add tests for auth flow"
+- Add tests for auth flow`
+              : `Enter your tasks here...
+
+Examples:
+- Renew driver's license
+- File taxes
+- Schedule doctor appointment
+- Pay utility bills`}
             className="raw-input-textarea"
             spellCheck={false}
           />
@@ -374,12 +394,14 @@ Examples:
               <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
               <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
             </div>
-            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
-            </div>
+            {shouldShowFileTree && (
+              <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+                <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+                <span className="text-[#666666]">+</span>
+                <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
+                <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
+              </div>
+            )}
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
               <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
               <span className="text-[#666666]">+</span>
@@ -402,13 +424,15 @@ Examples:
               <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
               <span className="text-[#888888] text-xs font-mono uppercase">UNINDENT</span>
             </div>
-            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#FF4D00] text-[#FF4D00] text-xs font-mono bg-transparent min-w-[32px] text-center">@</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">MENTION</span>
-            </div>
+            {shouldShowFileTree && (
+              <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+                <kbd className="px-3 py-1.5 border border-[#FF4D00] text-[#FF4D00] text-xs font-mono bg-transparent min-w-[32px] text-center">@</kbd>
+                <span className="text-[#888888] text-xs font-mono uppercase">MENTION</span>
+              </div>
+            )}
       </div>
 
-      {mentions.length > 0 && (
+      {shouldShowFileTree && mentions.length > 0 && (
         <div className="p-3 border-t border-[#222222] bg-[#0A0A0A]">
           <div className="text-xs text-[#888888] mb-2 font-mono uppercase tracking-wider">
             [DETECTED FILES]
