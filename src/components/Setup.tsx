@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DirectoryAutocomplete } from './DirectoryAutocomplete';
+import { ProjectType } from '../types';
 
 interface SetupProps {
   onComplete: (apiKey: string, projectPath: string) => void;
@@ -12,6 +13,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [projectName, setProjectName] = useState('');
+  const [projectType, setProjectType] = useState<ProjectType>('code');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [directorySuggestions, setDirectorySuggestions] = useState<string[]>([]);
@@ -132,7 +134,8 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
       // Add project
       await window.electronAPI.addProject({
         name: projectName,
-        path: projectPath,
+        path: projectType === 'code' ? projectPath : '',
+        type: projectType,
         created: Date.now(),
         last_accessed: Date.now(),
       });
@@ -277,7 +280,41 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
             />
           </div>
 
-          <div className="relative">
+          <div>
+            <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
+              Project Type
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="code"
+                  checked={projectType === 'code'}
+                  onChange={(e) => setProjectType(e.target.value as ProjectType)}
+                  className="form-radio text-[#FF4D00] bg-black border-[var(--text-dim)] focus:ring-[#FF4D00]"
+                />
+                <span className="text-sm text-[var(--text-primary)]">Code Project</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="life_admin"
+                  checked={projectType === 'life_admin'}
+                  onChange={(e) => setProjectType(e.target.value as ProjectType)}
+                  className="form-radio text-[#FF4D00] bg-black border-[var(--text-dim)] focus:ring-[#FF4D00]"
+                />
+                <span className="text-sm text-[var(--text-primary)]">Life Admin</span>
+              </label>
+            </div>
+            <p className="text-xs text-[var(--text-dim)] mt-1">
+              {projectType === 'code'
+                ? 'for software projects with file context'
+                : 'for personal tasks, errands, and life management'}
+            </p>
+          </div>
+
+          {projectType === 'code' && (
+            <div className="relative">
             <label
               htmlFor="projectPath"
               className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider"
@@ -333,6 +370,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
               )}
             </div>
           </div>
+          )}
 
           {error && (
             <div className="p-3 bg-[#FF4D00]/10 border border-[#FF4D00] text-xs text-[#FF4D00]">
