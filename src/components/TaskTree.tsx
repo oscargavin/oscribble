@@ -17,6 +17,7 @@ interface TaskTreeProps {
   showContextFiles: Set<string>;
   setShowContextFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
   hasVoice?: boolean;
+  shouldShowFileTree?: boolean;  // NEW: Controls file-related features
 }
 
 interface EmptyStateProps {
@@ -933,7 +934,7 @@ const TaskRow: React.FC<TaskRowProps> = ({
   );
 };
 
-export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, projectName, filterMode, setFilterMode, showContextFiles, setShowContextFiles, hasVoice = false }) => {
+export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot, projectName, filterMode, setFilterMode, showContextFiles, setShowContextFiles, hasVoice = false, shouldShowFileTree = true }) => {
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
@@ -954,16 +955,16 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
 
-  // Load project files for autocomplete
+  // Load project files for autocomplete (only for code projects)
   useEffect(() => {
-    if (projectRoot) {
+    if (projectRoot && shouldShowFileTree) {
       window.electronAPI.getProjectFiles(projectRoot).then((result) => {
         if (result.success && result.files) {
           setProjectFiles(result.files);
         }
       });
     }
-  }, [projectRoot]);
+  }, [projectRoot, shouldShowFileTree]);
 
   // Flatten tasks for navigation
   const flattenTasks = (taskList: TaskNode[], currentExpanded: Set<string> = expandedTasks): TaskNode[] => {
@@ -1671,9 +1672,9 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
       return;
     }
 
-    // Gather context from @mentions if present
+    // Gather context from @mentions if present (only for code projects)
     let contextFiles: Array<{ path: string; wasGrepped: boolean; matchedKeywords?: string[] }> = [];
-    if (newTaskText.includes('@')) {
+    if (shouldShowFileTree && newTaskText.includes('@')) {
       try {
         const contextResult = await window.electronAPI.gatherProjectContext(newTaskText, projectRoot);
         if (contextResult.success && contextResult.data.files) {
@@ -1725,26 +1726,28 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
     setNewTaskText(value);
     setCursorPosition(cursor);
 
-    // Check if we should show autocomplete
-    // Look backwards from cursor to find @ symbol
-    let atIndex = -1;
-    for (let i = cursor - 1; i >= 0; i--) {
-      if (value[i] === '@') {
-        atIndex = i;
-        break;
+    // Check if we should show autocomplete (only for code projects)
+    if (shouldShowFileTree) {
+      // Look backwards from cursor to find @ symbol
+      let atIndex = -1;
+      for (let i = cursor - 1; i >= 0; i--) {
+        if (value[i] === '@') {
+          atIndex = i;
+          break;
+        }
+        if (value[i] === ' ' || value[i] === '\n') {
+          break; // Stop if we hit whitespace before finding @
+        }
       }
-      if (value[i] === ' ' || value[i] === '\n') {
-        break; // Stop if we hit whitespace before finding @
-      }
-    }
 
-    if (atIndex !== -1) {
-      // Extract query from @ to cursor
-      const query = value.substring(atIndex + 1, cursor);
-      setAutocompleteQuery(query);
-      setShowAutocomplete(true);
-    } else {
-      setShowAutocomplete(false);
+      if (atIndex !== -1) {
+        // Extract query from @ to cursor
+        const query = value.substring(atIndex + 1, cursor);
+        setAutocompleteQuery(query);
+        setShowAutocomplete(true);
+      } else {
+        setShowAutocomplete(false);
+      }
     }
   };
 
@@ -1816,7 +1819,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
               onChange={handleNewTaskTextChange}
               onKeyDown={handleNewTaskKeyDown}
               onBlur={handleCreateTask}
-              placeholder="Enter task description... (type @ to mention files)"
+              placeholder={shouldShowFileTree ? "Enter task description... (type @ to mention files)" : "Enter task description..."}
               className="flex-1 bg-[#0A0A0A] text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-sm font-mono placeholder:text-[#666666]"
             />
           </div>
@@ -1889,12 +1892,15 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
           <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
         </div>
-        <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-          <span className="text-[#666666]">+</span>
-          <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
-          <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
-        </div>
+        {/* Only show context files shortcut for code projects */}
+        {shouldShowFileTree && (
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+            <span className="text-[#666666]">+</span>
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
+          </div>
+        )}
         <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
           <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
           <span className="text-[#666666]">+</span>
@@ -1987,8 +1993,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({ tasks, onUpdate, projectRoot
         );
       })()}
 
-      {/* File Autocomplete */}
-      {showAutocomplete && isCreating && (
+      {/* File Autocomplete (only for code projects) */}
+      {shouldShowFileTree && showAutocomplete && isCreating && (
         <FileAutocomplete
           files={projectFiles}
           query={autocompleteQuery}

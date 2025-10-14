@@ -7,11 +7,12 @@ import { TaskMapView } from "./components/TaskMapView";
 import { Settings } from "./components/Settings";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
 import { QuickSwitcher } from "./components/QuickSwitcher";
-import { TaskNode, NotesFile, ClaudeFormatResponse } from "./types";
+import { TaskNode, NotesFile, ClaudeFormatResponse, ProjectType } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { useProjects } from "./hooks/useProjects";
 import { useVoiceRecording } from "./hooks/useVoiceRecording";
 import { mapDependencyReferences, ensureTaskTitle, normalizeReferences } from "./utils/dependencyMapper";
+import { getContextStrategy } from "./services/context-strategy";
 import logo from "./oscribble-logo.png";
 
 type View = "setup" | "raw" | "tasks" | "map";
@@ -22,6 +23,7 @@ function App() {
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectRoot, setProjectRoot] = useState("");
+  const [projectType, setProjectType] = useState<ProjectType>('code');
   const [rawText, setRawText] = useState("");
   const [tasks, setTasks] = useState<TaskNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +102,7 @@ function App() {
           );
           if (project) {
             setProjectRoot(project.path);
+            setProjectType(project.type || 'code'); // Load project type
           }
 
           // Load raw text
@@ -282,6 +285,7 @@ function App() {
       // Then update project identity
       setProjectName(newProjectName);
       setProjectRoot(project.path);
+      setProjectType(project.type || 'code'); // Load project type
 
       // Load raw text (handle null case)
       const raw = await window.electronAPI.getRaw(newProjectName);
@@ -517,12 +521,37 @@ function App() {
         textToFormat = newLines.join("\n");
       }
 
-      // Format the text
+      // Get appropriate strategy
+      const strategy = getContextStrategy(projectType);
+
+      // Only gather context if strategy requires it and context not already provided
+      let finalContextStr = contextStr;
+      let finalContextFiles = contextFiles;
+
+      if (strategy.shouldShowFileTree() && !contextStr) {
+        // Gather context using strategy
+        const gatheredContext = await strategy.gatherContext(textToFormat, projectRoot);
+        finalContextStr = gatheredContext.files.map(f => {
+          const header = f.wasGrepped
+            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+            : `--- ${f.path} ---`;
+          return `${header}\n${f.content}`;
+        }).join('\n\n');
+
+        finalContextFiles = gatheredContext.files.map(f => ({
+          path: f.path,
+          wasGrepped: f.wasGrepped,
+          matchedKeywords: f.matchedKeywords
+        }));
+      }
+
+      // Format the text (pass projectType)
       const result = await window.electronAPI.formatWithClaude(
         textToFormat,
-        contextStr,
+        finalContextStr,
         isVoiceInput,
-        projectName
+        projectName,
+        projectType
       );
 
       if (!result.success) {
@@ -558,7 +587,7 @@ function App() {
               effort_estimate: task.effort_estimate,
               tags: task.tags,
               formatted: true, // Task has been analyzed by Claude
-              context_files: contextFiles, // Files that were analyzed for this task
+              context_files: finalContextFiles, // Files that were analyzed for this task
             },
           });
         }
@@ -805,6 +834,7 @@ function App() {
             showContextFiles={showContextFiles}
             setShowContextFiles={setShowContextFiles}
             hasVoice={!!openaiApiKey}
+            shouldShowFileTree={getContextStrategy(projectType).shouldShowFileTree()}
           />
         )}
         {view === "map" && (
