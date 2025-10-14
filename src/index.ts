@@ -364,7 +364,20 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
       }
     }
 
-    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks);
+    // Load user context from settings for life admin projects
+    let userContext: string | undefined;
+    if (finalProjectType === 'life_admin') {
+      try {
+        const settings = await StorageService.getSettings();
+        if (settings && settings.user_context) {
+          userContext = settings.user_context;
+        }
+      } catch (error) {
+        console.warn('Failed to load user context from settings:', error);
+      }
+    }
+
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks, userContext);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };
