@@ -36,9 +36,20 @@ export interface NotesFile {
   last_formatted_raw?: string; // Track what was last formatted
 }
 
+// Project types
+export type ProjectType = 'code' | 'life_admin';
+
+// Context strategy interface
+export interface ContextStrategy {
+  gatherContext(rawText: string, projectRoot: string): Promise<GatheredContext>;
+  getCategories(): string[];
+  shouldShowFileTree(): boolean;
+}
+
 export interface ProjectSettings {
   name: string;
   path: string;
+  type: ProjectType;
   created: number;
   last_accessed: number;
 }
