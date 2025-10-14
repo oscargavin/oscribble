@@ -498,6 +498,47 @@ function App() {
     }
   };
 
+  // Helper function to recursively convert ClaudeTask to TaskNode (including subtasks)
+  const convertClaudeTaskToTaskNode = (
+    claudeTask: any,
+    priority: "high" | "medium" | "low",
+    contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]
+  ): TaskNode => {
+    const taskTitle = ensureTaskTitle(claudeTask);
+
+    // Recursively convert subtasks if they exist
+    let convertedSubtasks: TaskNode[] | undefined;
+    if (claudeTask.subtasks && Array.isArray(claudeTask.subtasks) && claudeTask.subtasks.length > 0) {
+      convertedSubtasks = claudeTask.subtasks.map((subtask: any) =>
+        convertClaudeTaskToTaskNode(subtask, priority, contextFiles)
+      );
+    }
+
+    return {
+      id: uuidv4(),
+      text: claudeTask.text,
+      checked: false,
+      indent: 0,
+      children: [],
+      subtasks: convertedSubtasks,
+      metadata: {
+        title: taskTitle,
+        priority: priority,
+        original_priority: priority,
+        priority_edited: false,
+        blocked_by: claudeTask.blocked_by,
+        depends_on: undefined, // Will be mapped later
+        related_to: undefined, // Will be mapped later
+        notes: claudeTask.notes,
+        deadline: claudeTask.deadline,
+        effort_estimate: claudeTask.effort_estimate,
+        tags: claudeTask.tags,
+        formatted: true,
+        context_files: contextFiles,
+      },
+    };
+  };
+
   const handleFormat = async (
     rawText: string,
     contextStr: string,
@@ -567,36 +608,13 @@ function App() {
 
       const response: ClaudeFormatResponse = result.data;
 
-      // Convert Claude response to TaskNode format
+      // Convert Claude response to TaskNode format (including subtasks)
       const newTasks: TaskNode[] = [];
 
       for (const section of response.sections) {
         for (const task of section.tasks) {
           const priority = section.priority as "high" | "medium" | "low";
-          const taskTitle = ensureTaskTitle(task);
-
-          newTasks.push({
-            id: uuidv4(),
-            text: task.text,
-            checked: false,
-            indent: 0,
-            children: [],
-            metadata: {
-              title: taskTitle,
-              priority: priority,
-              original_priority: priority, // Store Claude's original suggestion
-              priority_edited: false, // Not yet edited by user
-              blocked_by: task.blocked_by,
-              depends_on: undefined, // Will be mapped below
-              related_to: undefined, // Will be mapped below
-              notes: task.notes, // Now passed as array directly
-              deadline: task.deadline,
-              effort_estimate: task.effort_estimate,
-              tags: task.tags,
-              formatted: true, // Task has been analyzed by Claude
-              context_files: finalContextFiles, // Files that were analyzed for this task
-            },
-          });
+          newTasks.push(convertClaudeTaskToTaskNode(task, priority, finalContextFiles));
         }
       }
 
