@@ -190,7 +190,8 @@ export class ClaudeService {
       actual_time: number;
       completed_at: number;
     }>,
-    existingTasks?: TaskNode[]
+    existingTasks?: TaskNode[],
+    userContext?: string
   ): Promise<ClaudeFormatResponse> {
     // Build few-shot examples from recent completions if available
     let completionExamples = '';
@@ -230,9 +231,33 @@ Analyze and structure these tasks.`;
 
     try {
       // Select appropriate system prompt based on project type
-      const systemPrompt = projectType === 'life_admin'
+      let systemPrompt = projectType === 'life_admin'
         ? LIFE_ADMIN_SYSTEM_PROMPT
         : SYSTEM_PROMPT;
+
+      // Prepend date/time and user context to life admin prompt
+      if (projectType === 'life_admin') {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        const timeStr = now.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+
+        let contextPrefix = `Current date: ${dateStr}\nCurrent time: ${timeStr}\n\n`;
+
+        if (userContext) {
+          contextPrefix += `User context:\n${userContext}\n\n`;
+        }
+
+        systemPrompt = contextPrefix + systemPrompt;
+      }
 
       // Use prompt caching for cost efficiency
       const message = await this.client.messages.create({
