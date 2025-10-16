@@ -347,8 +347,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
   });
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+    <div ref={containerRef} className="flex-1 flex flex-col">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden">
         {showEmptyState && displayTasks.length === 0 ? (
           <EmptyState filterMode={filterMode} hasVoice={hasVoice} />
         ) : (
