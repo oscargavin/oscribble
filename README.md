@@ -12,7 +12,7 @@ brutalist task manager. claude ai.
 - voice input. toggle record `CMD+R`. transcribe via openai.
 - `@mentions` load file context for smarter task analysis
 - auto-context discovery. claude finds relevant files automatically.
-- optional autocontext toggle. disable for instant formatting.
+- dual format modes. `CMD+Enter` with context. `CMD+Shift+Enter` without.
 - context tracking. see which files informed each task.
 - web search integration. claude searches when uncertain (life admin tasks).
 - clickable citations. sources open in browser.
@@ -48,21 +48,24 @@ requires node 18+, macos 11+
 
 ## use
 
-write raw notes. `CMD+Enter` to format.
+write raw notes. `CMD+Enter` to format with context.
 claude auto-discovers relevant project files.
 `@filepath` mentions force specific files.
+use `CMD+Shift+Enter` for instant formatting without context.
 arrow keys navigate. `Shift+↑↓` multi-select.
 `Space` toggles done. `CMD+O` shows context used.
 
 ### keyboard shortcuts
 
 ```
-CMD+K       quick project switcher
-CMD+1-9     switch to project (alphabetical)
-CMD+T       toggle raw/tasks view
-CMD+R       toggle voice recording
-CMD+O       show context files (focused/selected tasks)
-ESC         cancel recording
+CMD+Enter       format with auto-context
+CMD+Shift+Enter format without context (instant)
+CMD+K           quick project switcher
+CMD+1-9         switch to project (alphabetical)
+CMD+T           toggle raw/tasks view
+CMD+R           toggle voice recording
+CMD+O           show context files (focused/selected tasks)
+ESC             cancel recording
 
 ↑/↓         navigate
 Shift+↑/↓   multi-select tasks
@@ -80,7 +83,7 @@ Delete      remove task (single/batch)
 ## how it works
 
 ### intelligent context loading
-when you format tasks, oscribble automatically:
+when you format tasks with `CMD+Enter`, oscribble automatically:
 1. scans your task text for `@filepath` mentions
 2. discovers relevant files from your project (if no mentions)
 3. caches file content (7-day expiry)
@@ -88,9 +91,9 @@ when you format tasks, oscribble automatically:
 
 see which files claude used: press `CMD+O` on any task.
 
-**disable autocontext**: toggle in settings to skip context gathering.
-faster formatting, but less context-aware task analysis.
-useful when you want instant results or work with non-code projects.
+**instant formatting**: use `CMD+Shift+Enter` to skip context gathering.
+faster results, but less context-aware task analysis.
+useful when you want instant formatting or work with non-code projects.
 
 ### task timing & learning
 complete a task → duration automatically logged.
@@ -153,10 +156,6 @@ color indicator in header shows active model (deep/mid/light orange).
 **location** (optional)
 - city, region, country for localized web search results
 - used for life admin tasks (e.g., irish passport requirements)
-
-**autocontext toggle**
-- disable to skip file analysis for instant formatting
-- enable (default) for context-aware task analysis
 
 **personal context**
 - add custom info to personalize task suggestions
