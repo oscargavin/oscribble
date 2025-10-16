@@ -173,6 +173,32 @@ npm run make        # build installer
 
 electron + react + claude sonnet 4.5
 
+## contributing
+
+contributions welcome! oscribble is open source and we'd love your help.
+
+**ways to contribute:**
+- report bugs via [issues](https://github.com/oscargavin/oscribble/issues)
+- suggest features or improvements
+- submit pull requests with fixes or enhancements
+- improve documentation
+- share your experience and use cases
+
+**submitting prs:**
+1. fork the repo
+2. create a feature branch (`git checkout -b feature/amazing-feature`)
+3. commit your changes (`git commit -m 'add amazing feature'`)
+4. push to your fork (`git push origin feature/amazing-feature`)
+5. open a pull request
+
+**development notes:**
+- follow existing code style
+- test your changes thoroughly
+- update docs if you add/change features
+- keep commits focused and atomic
+
+questions? open an issue or start a discussion.
+
 ## mcp integration
 
 use oscribble from claude code. control tasks via natural language.
