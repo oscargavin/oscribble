@@ -26,8 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('gather-project-context', rawText, projectRoot),
   formatWithClaude: (rawText: string, contextStr: string, isVoiceInput?: boolean, projectName?: string, projectType?: string) =>
     ipcRenderer.invoke('format-with-claude', rawText, contextStr, isVoiceInput, projectName, projectType),
-  formatSingleTask: (taskText: string, projectRoot: string) =>
-    ipcRenderer.invoke('format-single-task', taskText, projectRoot),
+  formatSingleTask: (taskText: string, projectRoot: string, useAutocontext?: boolean) =>
+    ipcRenderer.invoke('format-single-task', taskText, projectRoot, useAutocontext),
   getProjectFiles: (projectRoot: string) =>
     ipcRenderer.invoke('get-project-files', projectRoot),
   getDirectorySuggestions: (partialPath: string) =>

@@ -40,7 +40,8 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; data?: ClaudeFormatResponse; error?: string }>;
   formatSingleTask: (
     taskText: string,
-    projectRoot: string
+    projectRoot: string,
+    useAutocontext?: boolean
   ) => Promise<{ success: boolean; data?: any; contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]; error?: string }>;
   getProjectFiles: (
     projectRoot: string

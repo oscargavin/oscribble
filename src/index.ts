@@ -405,45 +405,50 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
 });
 
 // Format a single task with Claude
-ipcMain.handle('format-single-task', async (_, taskText: string, projectRoot: string) => {
+ipcMain.handle('format-single-task', async (_, taskText: string, projectRoot: string, useAutocontext: boolean = true) => {
   try {
     if (!claudeService) {
       throw new Error('Claude service not initialized');
     }
 
-    // Load preferred model from settings (for context discovery)
-    let contextModel: any;
-    try {
-      const settings = await StorageService.getSettings();
-      if (settings) {
-        contextModel = settings.preferred_model;
-      }
-    } catch (error) {
-      console.warn('Failed to load preferred model for context discovery:', error);
-    }
-
-    // Gather context using unified system (@mentions + auto-discovery)
-    const contextResult = await ContextService.gatherProjectContext(taskText, projectRoot, contextModel);
-
-    // Format context for Claude prompt
     let contextString = '';
-    if (contextResult.files && contextResult.files.length > 0) {
-      contextString = contextResult.files.map(f => {
-        const header = f.wasGrepped
-          ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
-          : `--- ${f.path} ---`;
-        return `${header}\n${f.content}`;
-      }).join('\n\n');
+    let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
+
+    // Only gather context if useAutocontext is true
+    if (useAutocontext) {
+      // Load preferred model from settings (for context discovery)
+      let contextModel: any;
+      try {
+        const settings = await StorageService.getSettings();
+        if (settings) {
+          contextModel = settings.preferred_model;
+        }
+      } catch (error) {
+        console.warn('Failed to load preferred model for context discovery:', error);
+      }
+
+      // Gather context using unified system (@mentions + auto-discovery)
+      const contextResult = await ContextService.gatherProjectContext(taskText, projectRoot, contextModel);
+
+      // Format context for Claude prompt
+      if (contextResult.files && contextResult.files.length > 0) {
+        contextString = contextResult.files.map(f => {
+          const header = f.wasGrepped
+            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+            : `--- ${f.path} ---`;
+          return `${header}\n${f.content}`;
+        }).join('\n\n');
+      }
+
+      // Extract file metadata for storage with tasks
+      contextFiles = contextResult.files.map(f => ({
+        path: f.path,
+        wasGrepped: f.wasGrepped,
+        matchedKeywords: f.matchedKeywords
+      }));
+
+      console.log(`Context for single task: ${contextResult.files.length} files, ${contextResult.totalLines} lines (${contextResult.cacheHits} cached)`);
     }
-
-    // Extract file metadata for storage with tasks
-    const contextFiles = contextResult.files.map(f => ({
-      path: f.path,
-      wasGrepped: f.wasGrepped,
-      matchedKeywords: f.matchedKeywords
-    }));
-
-    console.log(`Context for single task: ${contextResult.files.length} files, ${contextResult.totalLines} lines (${contextResult.cacheHits} cached)`);
 
     // Load preferred model from settings
     let preferredModel: any;
