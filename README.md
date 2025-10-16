@@ -5,6 +5,18 @@ brutalist task manager. claude ai.
 
 ![oscribble interface](screenshot.png)
 
+### code projects with intelligent context
+
+![code project view](project-screenshot.png)
+
+track development tasks with file context awareness. claude auto-discovers relevant files from your codebase and analyzes them for smarter task breakdown. subtasks show dependencies, time estimates, and related tasks.
+
+### life admin with web search
+
+![life admin view](admin-screenshot.png)
+
+manage real-world tasks like passport applications, tax filing, or appointments. claude uses web search to find current requirements, fees, and deadlines. clickable citations `[1-2]` link to official sources.
+
 ## what it does
 
 - raw text becomes prioritized task lists
