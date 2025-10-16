@@ -309,7 +309,11 @@ export const TaskRow: React.FC<TaskRowProps> = ({
           <Checkbox
             checked={task.checked}
             onCheckedChange={() => onToggle(task.id)}
-            className="mt-1 cursor-pointer"
+            className={`mt-1 cursor-pointer ${
+              task.metadata?.start_time && !task.metadata?.duration
+                ? "!bg-[#FFAA00]/20 !border-[#FFAA00] animate-pulse-glow"
+                : ""
+            }`}
           />
         </div>
 
@@ -756,14 +760,6 @@ export const TaskRow: React.FC<TaskRowProps> = ({
               </svg>
             </button>
           </div>
-        )}
-
-        {/* Active task indicator - clean pulse at bottom, aligned with checkbox */}
-        {task.metadata?.start_time && !task.metadata?.duration && (
-          <span className="absolute left-5 bottom-1 flex h-1.5 w-1.5 flex-shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D00] opacity-40 [animation-duration:2s]"></span>
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#FF4D00]"></span>
-          </span>
         )}
       </div>
 

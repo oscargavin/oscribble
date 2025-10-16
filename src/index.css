@@ -115,6 +115,20 @@ button {
   }
 }
 
+/* Yellow glow animation for active/begun tasks */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 170, 0, 0.6), inset 0 0 8px rgba(255, 170, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 170, 0, 0.9), inset 0 0 12px rgba(255, 170, 0, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 .loading-ellipsis::after {
   content: '.';
   animation: ellipsis 1s steps(3, end) infinite;
