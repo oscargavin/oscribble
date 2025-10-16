@@ -347,8 +347,8 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
   });
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col">
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+    <div ref={containerRef} className="flex flex-col h-full bg-[var(--bg-primary)]">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {showEmptyState && displayTasks.length === 0 ? (
           <EmptyState filterMode={filterMode} hasVoice={hasVoice} />
         ) : (
@@ -448,7 +448,7 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
       )}
 
       {/* Keyboard shortcut hints */}
-      {!isCreating && displayTasks.length > 0 && (
+      {!isCreating && (
         <div className="flex items-center gap-4 p-3 border-t border-[#222222] overflow-x-auto flex-nowrap bg-[#0A0A0A]">
           <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
             <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↑↓</kbd>

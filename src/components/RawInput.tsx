@@ -6,7 +6,6 @@ interface RawInputProps {
   projectName: string;
   projectRoot: string;
   shouldShowFileTree?: boolean;  // NEW: Whether to show file-related features
-  disableAutocontext?: boolean;  // Whether to skip context gathering
   onFormat: (rawText: string, contextStr: string, isVoiceInput?: boolean, contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]) => Promise<void>;
 }
 
@@ -15,7 +14,6 @@ export const RawInput: React.FC<RawInputProps> = ({
   projectName,
   projectRoot,
   shouldShowFileTree = true,  // Default to true for backward compatibility
-  disableAutocontext = false,
   onFormat,
 }) => {
   const [rawText, setRawText] = useState(initialValue);
@@ -122,11 +120,20 @@ export const RawInput: React.FC<RawInputProps> = ({
       return;
     }
 
-    // Shift+Enter to format
-    if (e.shiftKey && e.key === 'Enter') {
+    // CMD+Enter to format WITH autocontext
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'Enter') {
       e.preventDefault();
       if (!formatting && rawText.trim()) {
-        handleFormat();
+        handleFormat(true); // WITH autocontext
+      }
+      return;
+    }
+
+    // CMD+Shift+Enter to format WITHOUT autocontext
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'Enter') {
+      e.preventDefault();
+      if (!formatting && rawText.trim()) {
+        handleFormat(false); // WITHOUT autocontext
       }
       return;
     }
@@ -260,14 +267,14 @@ export const RawInput: React.FC<RawInputProps> = ({
     }
   };
 
-  const handleFormat = async () => {
+  const handleFormat = async (useAutocontext: boolean = true) => {
     setFormatting(true);
     try {
       let contextString = '';
       let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
 
-      // Only gather context if not disabled and for code projects
-      if (!disableAutocontext && shouldShowFileTree && projectRoot) {
+      // Only gather context if enabled and for code projects
+      if (useAutocontext && shouldShowFileTree && projectRoot) {
         setFormatStatus('GATHERING');
 
         // Gather context from @mentions and auto-discovery
@@ -350,7 +357,7 @@ export const RawInput: React.FC<RawInputProps> = ({
         </div>
         <div className="flex items-center gap-2 no-drag">
           <button
-            onClick={handleFormat}
+            onClick={() => handleFormat(true)}
             disabled={formatting || !rawText.trim()}
             className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2"
           >
@@ -430,10 +437,18 @@ Examples:
               <span className="text-[#888888] text-xs font-mono uppercase">CLEAR</span>
             </div>
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
               <span className="text-[#666666]">+</span>
               <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
               <span className="text-[#888888] text-xs font-mono uppercase">FORMAT</span>
+            </div>
+            <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+              <span className="text-[#666666]">+</span>
+              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
+              <span className="text-[#888888] text-xs font-mono uppercase">NO CONTEXT</span>
             </div>
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
               <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>

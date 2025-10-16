@@ -11,7 +11,7 @@ interface TaskRowProps {
   onIndentChange: (id: string, delta: number) => void;
   onDelete: (id: string) => void;
   onMetadataChange: (id: string, metadata: TaskNode["metadata"]) => void;
-  onFormat: (id: string) => void;
+  onFormat: (id: string, useAutocontext?: boolean) => void;
   onFocus: (id: string) => void;
   isFocused: boolean;
   isSelected: boolean;
@@ -636,7 +636,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             {/* Format button - only for raw tasks */}
             {isRawTask && (
               <button
-                onClick={() => onFormat(task.id)}
+                onClick={() => onFormat(task.id, true)}
                 disabled={isFormattingTaskId === task.id}
                 className={`transition-colors duration-150 p-1 border bg-[#000000] ${
                   isFormattingTaskId === task.id
@@ -646,7 +646,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 title={
                   isFormattingTaskId === task.id
                     ? "Formatting..."
-                    : "Format with Claude (CMD+F)"
+                    : "Format with context (CMD+F) | No context (CMD+SHIFT+F)"
                 }
               >
                 {isFormattingTaskId === task.id ? (

@@ -23,7 +23,7 @@ interface UseKeyboardShortcutsProps {
   handleToggleExpand: (id: string) => void;
   handleToggle: (id: string) => void;
   handleDelete: (id: string) => void;
-  handleFormat: (id: string) => void;
+  handleFormat: (id: string, useAutocontext?: boolean) => void;
   handleBatchToggle: () => void;
   handleBatchDelete: () => void;
   copyTaskToClipboard: (task: TaskNode) => Promise<void>;
@@ -383,13 +383,15 @@ export const useKeyboardShortcuts = ({
         e.preventDefault();
         clearAllTasks();
       }
-      // Cmd+F to format focused task
+      // Cmd+F to format focused task WITH autocontext
+      // Cmd+Shift+F to format focused task WITHOUT autocontext
       else if ((e.metaKey || e.ctrlKey) && e.key === "f" && focusedTaskId) {
         e.preventDefault();
         const task = flatTasks.find((t) => t.id === focusedTaskId);
         // Only format if task is unformatted
         if (task && task.metadata?.formatted === false) {
-          handleFormat(focusedTaskId);
+          // e.shiftKey determines whether to use autocontext
+          handleFormat(focusedTaskId, !e.shiftKey);
         }
       }
       // Cmd+O to toggle context files visibility for focused/selected tasks

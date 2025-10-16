@@ -6,7 +6,6 @@ interface SettingsProps {
   currentOpenAIApiKey?: string;
   currentUserContext?: string;
   currentModel?: ModelId;
-  currentDisableAutocontext?: boolean;
   currentLocation?: {
     city?: string;
     region?: string;
@@ -17,7 +16,6 @@ interface SettingsProps {
     openaiApiKey?: string,
     userContext?: string,
     model?: ModelId,
-    disableAutocontext?: boolean,
     location?: { city?: string; region?: string; country?: string }
   ) => void;
   onClose: () => void;
@@ -28,7 +26,6 @@ export const Settings: React.FC<SettingsProps> = ({
   currentOpenAIApiKey,
   currentUserContext,
   currentModel,
-  currentDisableAutocontext,
   currentLocation,
   onSave,
   onClose,
@@ -37,7 +34,6 @@ export const Settings: React.FC<SettingsProps> = ({
   const [openaiApiKey, setOpenaiApiKey] = useState(currentOpenAIApiKey || '');
   const [userContext, setUserContext] = useState(currentUserContext || '');
   const [selectedModel, setSelectedModel] = useState<ModelId>(currentModel || DEFAULT_MODEL);
-  const [disableAutocontext, setDisableAutocontext] = useState(currentDisableAutocontext || false);
   const [locationCity, setLocationCity] = useState(currentLocation?.city || '');
   const [locationRegion, setLocationRegion] = useState(currentLocation?.region || '');
   const [locationCountry, setLocationCountry] = useState(currentLocation?.country || '');
@@ -131,7 +127,7 @@ export const Settings: React.FC<SettingsProps> = ({
         country: locationCountry.trim() || undefined,
       } : undefined;
 
-      // Get current settings and update API keys, user context, model, autocontext preference, and location
+      // Get current settings and update API keys, user context, model, and location
       const settings = await window.electronAPI.getSettings();
       await window.electronAPI.saveSettings({
         ...settings,
@@ -139,11 +135,10 @@ export const Settings: React.FC<SettingsProps> = ({
         openai_api_key: openaiApiKey.trim() || undefined,
         user_context: userContext.trim() || undefined,
         preferred_model: selectedModel,
-        disable_autocontext: disableAutocontext,
         user_location: location,
       });
 
-      onSave(apiKey, openaiApiKey, userContext, selectedModel, disableAutocontext, location);
+      onSave(apiKey, openaiApiKey, userContext, selectedModel, location);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -346,45 +341,6 @@ export const Settings: React.FC<SettingsProps> = ({
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Disable Autocontext Toggle */}
-          <div>
-            <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
-              Context Gathering
-            </label>
-            <button
-              type="button"
-              onClick={() => setDisableAutocontext(!disableAutocontext)}
-              className={`w-full px-4 py-3 border transition-all text-left ${
-                disableAutocontext
-                  ? 'bg-[#FF4D00]/10 border-[#FF4D00]'
-                  : 'bg-black border-[var(--text-dim)] hover:border-[var(--text-primary)]'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-                    {disableAutocontext ? 'AUTOCONTEXT DISABLED' : 'AUTOCONTEXT ENABLED'}
-                  </div>
-                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
-                    {disableAutocontext
-                      ? 'Format tasks instantly without analyzing project files'
-                      : 'Automatically analyze project files for better context'}
-                  </div>
-                </div>
-                <div className={`w-10 h-5 border rounded-full transition-colors relative ${
-                  disableAutocontext ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-black border-[var(--text-dim)]'
-                }`}>
-                  <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${
-                    disableAutocontext ? 'translate-x-5' : 'translate-x-0.5'
-                  }`} />
-                </div>
-              </div>
-            </button>
-            <p className="text-xs text-[var(--text-dim)] mt-2">
-              when disabled, Claude will format your raw text into structured tasks without analyzing @mentions or discovering relevant files
-            </p>
           </div>
 
           {/* Location Section */}
