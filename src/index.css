@@ -281,21 +281,21 @@ button {
 }
 
 /* Custom Scrollbar Styling - Brutalist Progress Bar Design */
-/* Hidden by default, shows on hover */
+/* Always visible but subtle */
 /* Webkit browsers (Chrome, Safari, Edge, Electron) */
 ::-webkit-scrollbar {
-  width: 4px;   /* Vertical scrollbar width - thin line */
-  height: 4px;  /* Horizontal scrollbar height - thin line */
+  width: 6px;   /* Vertical scrollbar width - thin but visible */
+  height: 6px;  /* Horizontal scrollbar height - thin but visible */
   border-radius: 0 !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;  /* Invisible by default */
+  background: rgba(255, 77, 0, 0.05);  /* Subtle track always visible */
   border-radius: 0 !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: transparent;  /* Invisible by default */
+  background: rgba(255, 77, 0, 0.25);  /* Always visible but subtle */
   border: none;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
@@ -303,38 +303,39 @@ button {
   transition: background 0.15s linear;
 }
 
-/* Show scrollbar on hover of scrollable container */
+/* Brighter scrollbar on hover */
 *:hover::-webkit-scrollbar-track {
-  background: transparent;  /* Keep track transparent */
+  background: rgba(255, 77, 0, 0.08);
 }
 
 *:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 77, 0, 0.35);
+  background: rgba(255, 77, 0, 0.45);
 }
 
 *:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 77, 0, 0.5);
+  background: rgba(255, 77, 0, 0.6);
 }
 
 *:hover::-webkit-scrollbar-thumb:active {
-  background: rgba(255, 77, 0, 0.7);
+  background: rgba(255, 77, 0, 0.8);
 }
 
 /* Corner where vertical and horizontal scrollbars meet */
 ::-webkit-scrollbar-corner {
-  background: transparent;
+  background: rgba(255, 77, 0, 0.05);
 }
 
 *:hover::-webkit-scrollbar-corner {
-  background: transparent;  /* Keep corner transparent */
+  background: rgba(255, 77, 0, 0.08);
 }
 
-/* Firefox - hidden by default */
+/* Firefox - always visible but thin */
 * {
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 77, 0, 0.25) rgba(255, 77, 0, 0.05);
 }
 
 *:hover {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 77, 0, 0.35) transparent;  /* Transparent track */
+  scrollbar-color: rgba(255, 77, 0, 0.45) rgba(255, 77, 0, 0.08);
 }

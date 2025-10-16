@@ -219,13 +219,13 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
     await copyAllTasks(flatTasks);
   };
 
-  const handleFormat = (id: string) => {
+  const handleFormat = (id: string, useAutocontext: boolean = true) => {
     setFormattingTaskId(id);
     const task = flatTasks.find((t) => t.id === id);
     if (!task) return;
 
     window.electronAPI
-      .formatSingleTask(task.text, projectRoot)
+      .formatSingleTask(task.text, projectRoot, useAutocontext)
       .then((result: { success: boolean; data?: any; contextFiles?: any[] }) => {
         if (result.success && result.data) {
           // Replace the raw task with formatted task
@@ -443,6 +443,46 @@ export const TaskTree: React.FC<TaskTreeProps> = ({
                 onClose={() => setShowAutocomplete(false)}
               />
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard shortcut hints */}
+      {!isCreating && displayTasks.length > 0 && (
+        <div className="flex items-center gap-4 p-3 border-t border-[#222222] overflow-x-auto flex-nowrap bg-[#0A0A0A]">
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">↑↓</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">NAVIGATE</span>
+          </div>
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SPACE</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE</span>
+          </div>
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">N</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">NEW TASK</span>
+          </div>
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+            <span className="text-[#666666]">+</span>
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">F</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">FORMAT</span>
+          </div>
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+            <span className="text-[#666666]">+</span>
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+            <span className="text-[#666666]">+</span>
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">F</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">NO CONTEXT</span>
+          </div>
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">1-5</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">FILTER</span>
+          </div>
+          <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
+            <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">C</kbd>
+            <span className="text-[#888888] text-xs font-mono uppercase">DESELECT</span>
           </div>
         </div>
       )}
