@@ -23,8 +23,18 @@ export interface TaskNode {
       wasGrepped?: boolean;
       matchedKeywords?: string[];
     }[];
+    citations?: {          // Web search citations (mapping index to URL + title)
+      [index: string]: {
+        url: string;
+        title: string;
+      };
+    };
     start_time?: number;   // Unix timestamp when task started (active if set && !duration)
     duration?: number;     // Milliseconds elapsed (presence means completed)
+    attempts?: Array<{     // Failed completion attempts (from Claude Code MCP)
+      timestamp: number;   // Unix timestamp when attempt failed (milliseconds)
+      note: string;        // Detailed note from Claude Code about what was tried
+    }>;
   };
 }
 
@@ -60,6 +70,13 @@ export interface AppSettings {
   api_key?: string; // Anthropic API key
   openai_api_key?: string; // OpenAI API key
   user_context?: string; // Free-form text about the user (location, preferences, etc.) for personalizing life admin tasks
+  preferred_model?: 'sonnet' | 'haiku' | 'balanced'; // Claude model preference
+  disable_autocontext?: boolean; // Skip automatic context gathering for faster formatting
+  user_location?: {
+    city?: string;
+    region?: string;  // State/Province
+    country?: string; // ISO country code (e.g., "US", "IE")
+  };
 }
 
 export interface ClaudeFormatResponse {

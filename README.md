@@ -8,10 +8,14 @@ brutalist task manager. claude ai.
 ## what it does
 
 - raw text becomes prioritized task lists
+- model selection. choose balanced (haiku+sonnet), sonnet (intelligent), or haiku (fast).
 - voice input. toggle record `CMD+R`. transcribe via openai.
 - `@mentions` load file context for smarter task analysis
 - auto-context discovery. claude finds relevant files automatically.
+- optional autocontext toggle. disable for instant formatting.
 - context tracking. see which files informed each task.
+- web search integration. claude searches when uncertain (life admin tasks).
+- clickable citations. sources open in browser.
 - task timing. automatic duration tracking for completed tasks.
 - few-shot learning. time estimates improve from your completion history.
 - hierarchical tasks. expand/collapse. arrow keys.
@@ -84,12 +88,28 @@ when you format tasks, oscribble automatically:
 
 see which files claude used: press `CMD+O` on any task.
 
+**disable autocontext**: toggle in settings to skip context gathering.
+faster formatting, but less context-aware task analysis.
+useful when you want instant results or work with non-code projects.
+
 ### task timing & learning
 complete a task → duration automatically logged.
 next format → claude sees your completion history.
 time estimates improve from your patterns (last 10 tasks).
 
 active tasks show pulsing orange indicator.
+
+### web search for life admin
+life admin tasks (passports, taxes, appointments) use claude's web search:
+- claude decides when to search based on confidence
+- searches government sites, official docs, current requirements
+- location-aware (set city/region/country in settings)
+- sources embedded as clickable citations `[1]` `[2]`
+- click citation → opens source url in browser
+
+ui state: `FORMAT` → `SEARCHING` → `ANALYZING` → `FORMATTING`
+
+if analyzing takes >20s, switches to `SEARCHING` (likely web searching).
 
 ### filtering & views
 default view: unchecked tasks only.
@@ -106,19 +126,41 @@ empty state shows helpful shortcuts.
 
 stored in `~/.project-stickies/`
 ```
-settings.json         # api keys, current project
+settings.json         # api keys, current project, location
 projects.json         # project registry
 {project}/
-  notes.json          # structured tasks
+  notes.json          # structured tasks (with citations)
   raw.txt             # autosaved input
   completion_log.json # task timing history (last 10 completions)
   .context-cache/     # file context cache (7 day expiry)
 ```
 
-## api keys
+## settings
 
+configure in settings panel:
+
+**api keys**
 - anthropic (required): task formatting via claude
 - openai (optional): voice transcription
+
+**model selection**
+- balanced (default): haiku for autocontext, sonnet for task generation
+- sonnet 4.5: intelligent, best for complex analysis
+- haiku 4.5: fast, economical, best for simple tasks
+
+color indicator in header shows active model (deep/mid/light orange).
+
+**location** (optional)
+- city, region, country for localized web search results
+- used for life admin tasks (e.g., irish passport requirements)
+
+**autocontext toggle**
+- disable to skip file analysis for instant formatting
+- enable (default) for context-aware task analysis
+
+**personal context**
+- add custom info to personalize task suggestions
+- examples: work schedule, tax year, preferences
 
 get keys: [anthropic](https://console.anthropic.com/) • [openai](https://platform.openai.com/api-keys)
 

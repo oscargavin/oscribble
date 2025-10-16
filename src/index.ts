@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { StorageService } from './services/storage';
 import { ContextService } from './services/context';
 import { ClaudeService } from './services/claude';
@@ -314,7 +314,18 @@ ipcMain.handle('gather-context', async (_, rawText: string, projectRoot: string)
 // Gather project context (unified @mentions + auto-discovery)
 ipcMain.handle('gather-project-context', async (_, rawText: string, projectRoot: string) => {
   try {
-    const context = await ContextService.gatherProjectContext(rawText, projectRoot);
+    // Load preferred model from settings
+    let preferredModel: any;
+    try {
+      const settings = await StorageService.getSettings();
+      if (settings) {
+        preferredModel = settings.preferred_model;
+      }
+    } catch (error) {
+      console.warn('Failed to load preferred model from settings:', error);
+    }
+
+    const context = await ContextService.gatherProjectContext(rawText, projectRoot, preferredModel);
     return { success: true, data: context };
   } catch (error: any) {
     console.error('Error gathering project context:', error);
@@ -323,7 +334,7 @@ ipcMain.handle('gather-project-context', async (_, rawText: string, projectRoot:
 });
 
 // Format with Claude
-ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput: boolean = false, projectName?: string, projectType?: string) => {
+ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: string, isVoiceInput = false, projectName?: string, projectType?: string) => {
   try {
     if (!claudeService) {
       throw new Error('Claude service not initialized');
@@ -364,20 +375,29 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
       }
     }
 
-    // Load user context from settings for life admin projects
+    // Load user context, preferred model, and location from settings
     let userContext: string | undefined;
-    if (finalProjectType === 'life_admin') {
-      try {
-        const settings = await StorageService.getSettings();
-        if (settings && settings.user_context) {
+    let preferredModel: any;
+    let userLocation: { city?: string; region?: string; country?: string; } | undefined;
+    try {
+      const settings = await StorageService.getSettings();
+      if (settings) {
+        // Load user context for life admin projects
+        if (finalProjectType === 'life_admin' && settings.user_context) {
           userContext = settings.user_context;
         }
-      } catch (error) {
-        console.warn('Failed to load user context from settings:', error);
+        // Load user location for life admin projects (for web search)
+        if (finalProjectType === 'life_admin' && settings.user_location) {
+          userLocation = settings.user_location;
+        }
+        // Load preferred model (applies to all projects)
+        preferredModel = settings.preferred_model;
       }
+    } catch (error) {
+      console.warn('Failed to load settings:', error);
     }
 
-    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks, userContext);
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks, userContext, preferredModel, userLocation);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };
@@ -391,8 +411,19 @@ ipcMain.handle('format-single-task', async (_, taskText: string, projectRoot: st
       throw new Error('Claude service not initialized');
     }
 
+    // Load preferred model from settings (for context discovery)
+    let contextModel: any;
+    try {
+      const settings = await StorageService.getSettings();
+      if (settings) {
+        contextModel = settings.preferred_model;
+      }
+    } catch (error) {
+      console.warn('Failed to load preferred model for context discovery:', error);
+    }
+
     // Gather context using unified system (@mentions + auto-discovery)
-    const contextResult = await ContextService.gatherProjectContext(taskText, projectRoot);
+    const contextResult = await ContextService.gatherProjectContext(taskText, projectRoot, contextModel);
 
     // Format context for Claude prompt
     let contextString = '';
@@ -414,8 +445,19 @@ ipcMain.handle('format-single-task', async (_, taskText: string, projectRoot: st
 
     console.log(`Context for single task: ${contextResult.files.length} files, ${contextResult.totalLines} lines (${contextResult.cacheHits} cached)`);
 
+    // Load preferred model from settings
+    let preferredModel: any;
+    try {
+      const settings = await StorageService.getSettings();
+      if (settings) {
+        preferredModel = settings.preferred_model;
+      }
+    } catch (error) {
+      console.warn('Failed to load preferred model from settings:', error);
+    }
+
     // Format the task with Claude
-    const response = await claudeService.formatTasks(taskText, contextString);
+    const response = await claudeService.formatTasks(taskText, contextString, false, 'code', undefined, undefined, undefined, preferredModel);
 
     return { success: true, data: response, contextFiles };
   } catch (error) {
@@ -757,6 +799,15 @@ ipcMain.handle('get-priority-edit-stats', async (_, projectName: string) => {
   } catch (error) {
     console.error('Get priority edit stats error:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// Open external URL in default browser
+ipcMain.handle('open-external', async (_, url: string) => {
+  try {
+    await shell.openExternal(url);
+  } catch (error) {
+    console.error('Failed to open external URL:', error);
   }
 });
 

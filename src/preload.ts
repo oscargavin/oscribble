@@ -24,8 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('gather-context', rawText, projectRoot),
   gatherProjectContext: (rawText: string, projectRoot: string) =>
     ipcRenderer.invoke('gather-project-context', rawText, projectRoot),
-  formatWithClaude: (rawText: string, contextStr: string, isVoiceInput?: boolean, projectName?: string) =>
-    ipcRenderer.invoke('format-with-claude', rawText, contextStr, isVoiceInput, projectName),
+  formatWithClaude: (rawText: string, contextStr: string, isVoiceInput?: boolean, projectName?: string, projectType?: string) =>
+    ipcRenderer.invoke('format-with-claude', rawText, contextStr, isVoiceInput, projectName, projectType),
   formatSingleTask: (taskText: string, projectRoot: string) =>
     ipcRenderer.invoke('format-single-task', taskText, projectRoot),
   getProjectFiles: (projectRoot: string) =>
@@ -60,4 +60,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-recent-priority-edits', projectName, limit),
   getPriorityEditStats: (projectName: string) =>
     ipcRenderer.invoke('get-priority-edit-stats', projectName),
+  // Open external URL in default browser
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
 });

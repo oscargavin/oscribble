@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { FileContext, GatheredContext } from '../types';
+import { ModelId } from '../config/models';
 import AutoContextService from './auto-context';
 
 const MAX_FILE_SIZE = 50 * 1024; // 50KB limit per file
@@ -183,7 +184,8 @@ export class ContextService {
    */
   static async gatherProjectContext(
     rawText: string,
-    projectRoot: string
+    projectRoot: string,
+    modelId?: ModelId
   ): Promise<GatheredContext> {
     // Check feature flag
     const autoContextEnabled = process.env.ENABLE_AUTO_CONTEXT !== 'false';
@@ -208,7 +210,7 @@ export class ContextService {
     }
 
     // Auto-discovery enabled
-    const autoContext = await AutoContextService.discoverContext(rawText, projectRoot);
+    const autoContext = await AutoContextService.discoverContext(rawText, projectRoot, modelId);
 
     // Also gather explicit @mentions (legacy support)
     const explicitContext = await this.gatherContext(rawText, projectRoot);

@@ -10,6 +10,7 @@ import {
   FileContext,
   GatheredContext
 } from '../types';
+import { ModelId, getModelApiString } from '../config/models';
 
 const execAsync = promisify(exec);
 
@@ -30,7 +31,8 @@ export class AutoContextService {
    */
   async discoverContext(
     rawText: string,
-    projectRoot: string
+    projectRoot: string,
+    modelId?: ModelId
   ): Promise<GatheredContext> {
     const cacheDir = path.join(projectRoot, '.context-cache');
 
@@ -39,7 +41,7 @@ export class AutoContextService {
       const fileTree = await this.generateFileTree(projectRoot);
 
       // Step 2: Let Claude select files
-      const selection = await this.selectFiles(fileTree, rawText);
+      const selection = await this.selectFiles(fileTree, rawText, modelId);
 
       // Step 3: Combine explicit and discovered files
       const allFiles: DiscoveredFile[] = [
@@ -119,7 +121,8 @@ export class AutoContextService {
    */
   private async selectFiles(
     fileTree: string,
-    rawText: string
+    rawText: string,
+    modelId?: ModelId
   ): Promise<ContextDiscoveryResponse> {
     if (!this.claudeClient) {
       throw new Error('Claude client not initialized. Call initClaude() first.');
@@ -151,7 +154,7 @@ Return JSON only (no markdown):
 
     try {
       const message = await this.claudeClient.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: getModelApiString(modelId, 'discovery'),
         max_tokens: 2000,
         messages: [
           {

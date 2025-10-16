@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
+import { MODELS, ModelId, DEFAULT_MODEL } from '../config/models';
 
 interface SettingsProps {
   currentApiKey?: string;
   currentOpenAIApiKey?: string;
   currentUserContext?: string;
-  onSave: (apiKey: string, openaiApiKey?: string, userContext?: string) => void;
+  currentModel?: ModelId;
+  currentDisableAutocontext?: boolean;
+  currentLocation?: {
+    city?: string;
+    region?: string;
+    country?: string;
+  };
+  onSave: (
+    apiKey: string,
+    openaiApiKey?: string,
+    userContext?: string,
+    model?: ModelId,
+    disableAutocontext?: boolean,
+    location?: { city?: string; region?: string; country?: string }
+  ) => void;
   onClose: () => void;
 }
 
@@ -12,12 +27,20 @@ export const Settings: React.FC<SettingsProps> = ({
   currentApiKey,
   currentOpenAIApiKey,
   currentUserContext,
+  currentModel,
+  currentDisableAutocontext,
+  currentLocation,
   onSave,
   onClose,
 }) => {
   const [apiKey, setApiKey] = useState(currentApiKey || '');
   const [openaiApiKey, setOpenaiApiKey] = useState(currentOpenAIApiKey || '');
   const [userContext, setUserContext] = useState(currentUserContext || '');
+  const [selectedModel, setSelectedModel] = useState<ModelId>(currentModel || DEFAULT_MODEL);
+  const [disableAutocontext, setDisableAutocontext] = useState(currentDisableAutocontext || false);
+  const [locationCity, setLocationCity] = useState(currentLocation?.city || '');
+  const [locationRegion, setLocationRegion] = useState(currentLocation?.region || '');
+  const [locationCountry, setLocationCountry] = useState(currentLocation?.country || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [testingAnthropic, setTestingAnthropic] = useState(false);
@@ -101,16 +124,26 @@ export const Settings: React.FC<SettingsProps> = ({
         }
       }
 
-      // Get current settings and update API keys and user context
+      // Build location object if any field is filled
+      const location = (locationCity || locationRegion || locationCountry) ? {
+        city: locationCity.trim() || undefined,
+        region: locationRegion.trim() || undefined,
+        country: locationCountry.trim() || undefined,
+      } : undefined;
+
+      // Get current settings and update API keys, user context, model, autocontext preference, and location
       const settings = await window.electronAPI.getSettings();
       await window.electronAPI.saveSettings({
         ...settings,
         api_key: apiKey,
         openai_api_key: openaiApiKey.trim() || undefined,
         user_context: userContext.trim() || undefined,
+        preferred_model: selectedModel,
+        disable_autocontext: disableAutocontext,
+        user_location: location,
       });
 
-      onSave(apiKey, openaiApiKey, userContext);
+      onSave(apiKey, openaiApiKey, userContext, selectedModel, disableAutocontext, location);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -120,8 +153,8 @@ export const Settings: React.FC<SettingsProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 no-drag">
-      <div className="bg-black border border-[var(--text-dim)] w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-black border border-[var(--text-dim)] w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-[var(--text-dim)]">
           <h2 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
             Settings
           </h2>
@@ -133,7 +166,8 @@ export const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Anthropic API Key Section */}
           <div>
             <label
@@ -273,6 +307,119 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
 
+          {/* Model Selection Section */}
+          <div>
+            <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
+              Claude Model
+            </label>
+            <div className="space-y-2">
+              {Object.values(MODELS).map((model) => (
+                <button
+                  key={model.id}
+                  type="button"
+                  onClick={() => setSelectedModel(model.id)}
+                  className={`w-full px-4 py-3 bg-black border transition-all text-left ${
+                    selectedModel === model.id
+                      ? 'border-[#FF4D00]'
+                      : 'border-[var(--text-dim)] hover:border-[var(--text-primary)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: model.color }}
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+                          {model.name}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                          {model.description}
+                        </div>
+                      </div>
+                    </div>
+                    {selectedModel === model.id && (
+                      <span className="text-[#FF4D00] text-xs">✓</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Disable Autocontext Toggle */}
+          <div>
+            <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
+              Context Gathering
+            </label>
+            <button
+              type="button"
+              onClick={() => setDisableAutocontext(!disableAutocontext)}
+              className={`w-full px-4 py-3 border transition-all text-left ${
+                disableAutocontext
+                  ? 'bg-[#FF4D00]/10 border-[#FF4D00]'
+                  : 'bg-black border-[var(--text-dim)] hover:border-[var(--text-primary)]'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+                    {disableAutocontext ? 'AUTOCONTEXT DISABLED' : 'AUTOCONTEXT ENABLED'}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                    {disableAutocontext
+                      ? 'Format tasks instantly without analyzing project files'
+                      : 'Automatically analyze project files for better context'}
+                  </div>
+                </div>
+                <div className={`w-10 h-5 border rounded-full transition-colors relative ${
+                  disableAutocontext ? 'bg-[#FF4D00] border-[#FF4D00]' : 'bg-black border-[var(--text-dim)]'
+                }`}>
+                  <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${
+                    disableAutocontext ? 'translate-x-5' : 'translate-x-0.5'
+                  }`} />
+                </div>
+              </div>
+            </button>
+            <p className="text-xs text-[var(--text-dim)] mt-2">
+              when disabled, Claude will format your raw text into structured tasks without analyzing @mentions or discovering relevant files
+            </p>
+          </div>
+
+          {/* Location Section */}
+          <div>
+            <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
+              Location (Optional)
+            </label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={locationCity}
+                onChange={(e) => setLocationCity(e.target.value)}
+                placeholder="City (e.g., Dublin, San Francisco)"
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+              />
+              <input
+                type="text"
+                value={locationRegion}
+                onChange={(e) => setLocationRegion(e.target.value)}
+                placeholder="State/Region (e.g., California, Leinster)"
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+              />
+              <input
+                type="text"
+                value={locationCountry}
+                onChange={(e) => setLocationCountry(e.target.value)}
+                placeholder="Country code (e.g., US, IE, GB)"
+                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1">
+                helps Claude search for location-specific information when organizing life admin tasks
+              </p>
+            </div>
+          </div>
+
           {/* Personal Context Section */}
           <div>
             <label
@@ -286,8 +433,8 @@ export const Settings: React.FC<SettingsProps> = ({
                 id="userContext"
                 value={userContext}
                 onChange={(e) => setUserContext(e.target.value)}
-                placeholder="Add personal context to help Claude personalize your tasks...&#10;&#10;Examples:&#10;• Location: San Francisco, CA&#10;• Tax year: 2024&#10;• Work schedule: Mon-Fri 9-5&#10;• Preferences: prefer morning appointments&#10;• Current goals: organizing finances, job search&#10;• Any other relevant personal information"
-                rows={8}
+                placeholder="Add personal context to help Claude personalize your tasks...&#10;&#10;Examples:&#10;• Tax year: 2024&#10;• Work schedule: Mon-Fri 9-5&#10;• Preferences: prefer morning appointments&#10;• Current goals: organizing finances, job search&#10;• Any other relevant personal information"
+                rows={6}
                 className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono resize-y"
               />
               <p className="text-xs text-[var(--text-dim)] mt-1">
@@ -295,28 +442,31 @@ export const Settings: React.FC<SettingsProps> = ({
               </p>
             </div>
           </div>
+          </div>
 
-          {error && (
-            <div className="p-3 bg-[#FF4D00]/10 border border-[#FF4D00] text-xs text-[#FF4D00]">
-              {error}
+          <div className="px-6 py-4 border-t border-[var(--text-dim)] space-y-4">
+            {error && (
+              <div className="p-3 bg-[#FF4D00]/10 border border-[#FF4D00] text-xs text-[#FF4D00]">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors text-xs uppercase tracking-wider"
+              >
+                Cancel
+              </button>
             </div>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors text-xs uppercase tracking-wider"
-            >
-              Cancel
-            </button>
           </div>
         </form>
       </div>

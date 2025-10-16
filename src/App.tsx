@@ -13,6 +13,7 @@ import { useProjects } from "./hooks/useProjects";
 import { useVoiceRecording } from "./hooks/useVoiceRecording";
 import { mapDependencyReferences, ensureTaskTitle, normalizeReferences } from "./utils/dependencyMapper";
 import { getContextStrategy } from "./services/context-strategy";
+import { ModelId, getModelColor, DEFAULT_MODEL } from "./config/models";
 import logo from "./oscribble-logo.png";
 
 type View = "setup" | "raw" | "tasks" | "map";
@@ -33,6 +34,9 @@ function App() {
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [userContext, setUserContext] = useState("");
+  const [preferredModel, setPreferredModel] = useState<ModelId>(DEFAULT_MODEL);
+  const [disableAutocontext, setDisableAutocontext] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ city?: string; region?: string; country?: string; }>();
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('unchecked');
 
@@ -90,6 +94,21 @@ function App() {
         // Load user context if present
         if (settings?.user_context) {
           setUserContext(settings.user_context);
+        }
+
+        // Load preferred model if present
+        if (settings?.preferred_model) {
+          setPreferredModel(settings.preferred_model);
+        }
+
+        // Load disable autocontext preference
+        if (settings?.disable_autocontext !== undefined) {
+          setDisableAutocontext(settings.disable_autocontext);
+        }
+
+        // Load user location
+        if (settings?.user_location) {
+          setUserLocation(settings.user_location);
         }
 
         // Determine which project to load:
@@ -278,6 +297,9 @@ function App() {
         api_key: apiKey,
         openai_api_key: openaiApiKey || undefined,
         user_context: userContext || undefined,
+        preferred_model: preferredModel,
+        disable_autocontext: disableAutocontext,
+        user_location: userLocation,
       });
 
       // Update project last_accessed time
@@ -448,33 +470,44 @@ function App() {
 
       const transcript = transcriptResult.data;
 
-      setVoiceStatus('GATHERING');
-      // Gather context from transcript (includes @mentions and auto-discovery)
-      const contextResult = await window.electronAPI.gatherProjectContext(
-        transcript,
-        projectRoot
-      );
-
       // Format gathered context for Claude
       let contextString = '';
       let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
-      if (contextResult.success && contextResult.data) {
-        const gc = contextResult.data;
-        contextString = gc.files.map(f => {
-          const header = f.wasGrepped
-            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
-            : `--- ${f.path} ---`;
-          return `${header}\n${f.content}`;
-        }).join('\n\n');
 
-        // Extract file metadata for storage with tasks
-        contextFiles = gc.files.map(f => ({
-          path: f.path,
-          wasGrepped: f.wasGrepped,
-          matchedKeywords: f.matchedKeywords
-        }));
+      // Only gather context if not disabled
+      if (!disableAutocontext) {
+        setVoiceStatus('GATHERING');
+        // Gather context from transcript (includes @mentions and auto-discovery)
+        const contextResult = await window.electronAPI.gatherProjectContext(
+          transcript,
+          projectRoot
+        );
 
-        console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+        if (contextResult.success && contextResult.data) {
+          const gc = contextResult.data;
+          contextString = gc.files.map(f => {
+            const header = f.wasGrepped
+              ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+              : `--- ${f.path} ---`;
+            return `${header}\n${f.content}`;
+          }).join('\n\n');
+
+          // Extract file metadata for storage with tasks
+          contextFiles = gc.files.map(f => ({
+            path: f.path,
+            wasGrepped: f.wasGrepped,
+            matchedKeywords: f.matchedKeywords
+          }));
+
+          console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+        }
+      }
+
+      // Show SEARCHING state for life admin projects (web search may occur)
+      if (projectType === 'life_admin') {
+        setVoiceStatus('SEARCHING');
+        // Small delay to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       setVoiceStatus('ANALYZING');
@@ -502,7 +535,8 @@ function App() {
   const convertClaudeTaskToTaskNode = (
     claudeTask: any,
     priority: "high" | "medium" | "low",
-    contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]
+    contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[],
+    citations?: { [index: string]: { url: string; title: string } }
   ): TaskNode => {
     const taskTitle = ensureTaskTitle(claudeTask);
 
@@ -510,7 +544,7 @@ function App() {
     let convertedSubtasks: TaskNode[] | undefined;
     if (claudeTask.subtasks && Array.isArray(claudeTask.subtasks) && claudeTask.subtasks.length > 0) {
       convertedSubtasks = claudeTask.subtasks.map((subtask: any) =>
-        convertClaudeTaskToTaskNode(subtask, priority, contextFiles)
+        convertClaudeTaskToTaskNode(subtask, priority, contextFiles, citations)
       );
     }
 
@@ -535,6 +569,7 @@ function App() {
         tags: claudeTask.tags,
         formatted: true,
         context_files: contextFiles,
+        citations: citations,
       },
     };
   };
@@ -572,11 +607,11 @@ function App() {
       // Get appropriate strategy
       const strategy = getContextStrategy(projectType);
 
-      // Only gather context if strategy requires it and context not already provided
+      // Only gather context if not disabled, strategy requires it, and context not already provided
       let finalContextStr = contextStr;
       let finalContextFiles = contextFiles;
 
-      if (strategy.shouldShowFileTree() && !contextStr) {
+      if (!disableAutocontext && strategy.shouldShowFileTree() && !contextStr) {
         // Gather context using strategy
         const gatheredContext = await strategy.gatherContext(textToFormat, projectRoot);
         finalContextStr = gatheredContext.files.map(f => {
@@ -608,15 +643,22 @@ function App() {
 
       const response: ClaudeFormatResponse = result.data;
 
+      // Extract citations if present (from web search)
+      const citations = (response as any).citations;
+
       // Convert Claude response to TaskNode format (including subtasks)
       const newTasks: TaskNode[] = [];
 
+      console.log('🔍 Claude returned sections:', response.sections.length);
       for (const section of response.sections) {
+        console.log(`🔍 Section has ${section.tasks.length} tasks`);
         for (const task of section.tasks) {
+          console.log(`🔍 Task: "${task.text}" with ${task.subtasks?.length || 0} subtasks`);
           const priority = section.priority as "high" | "medium" | "low";
-          newTasks.push(convertClaudeTaskToTaskNode(task, priority, finalContextFiles));
+          newTasks.push(convertClaudeTaskToTaskNode(task, priority, finalContextFiles, citations));
         }
       }
+      console.log(`🔍 Total tasks created: ${newTasks.length}`);
 
       // Second pass: Map dependency references to UUIDs
       let taskIndex = 0;
@@ -769,6 +811,17 @@ function App() {
           )}
         </div>
         <div className="flex items-center gap-3 no-drag">
+          {/* Model Indicator */}
+          <div
+            className="w-[28px] h-[28px] flex items-center justify-center border text-[10px] font-bold font-mono transition-colors duration-75"
+            style={{
+              borderColor: getModelColor(preferredModel),
+              color: getModelColor(preferredModel)
+            }}
+            title={`Claude ${preferredModel.toUpperCase()}`}
+          >
+            {preferredModel.charAt(0).toUpperCase()}
+          </div>
           {/* Filter Button - only show when in tasks view */}
           {view === "tasks" && (
             <button
@@ -846,6 +899,7 @@ function App() {
             projectName={projectName}
             projectRoot={projectRoot}
             shouldShowFileTree={getContextStrategy(projectType).shouldShowFileTree()}
+            disableAutocontext={disableAutocontext}
             onFormat={handleFormat}
           />
         )}
@@ -879,13 +933,25 @@ function App() {
           currentApiKey={apiKey}
           currentOpenAIApiKey={openaiApiKey}
           currentUserContext={userContext}
-          onSave={(newApiKey, newOpenaiApiKey, newUserContext) => {
+          currentModel={preferredModel}
+          currentDisableAutocontext={disableAutocontext}
+          currentLocation={userLocation}
+          onSave={(newApiKey, newOpenaiApiKey, newUserContext, newModel, newDisableAutocontext, newLocation) => {
             setApiKey(newApiKey);
             if (newOpenaiApiKey) {
               setOpenaiApiKey(newOpenaiApiKey);
             }
             if (newUserContext !== undefined) {
               setUserContext(newUserContext);
+            }
+            if (newModel) {
+              setPreferredModel(newModel);
+            }
+            if (newDisableAutocontext !== undefined) {
+              setDisableAutocontext(newDisableAutocontext);
+            }
+            if (newLocation !== undefined) {
+              setUserLocation(newLocation);
             }
             setShowSettings(false);
           }}

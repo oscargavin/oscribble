@@ -6,6 +6,7 @@ interface RawInputProps {
   projectName: string;
   projectRoot: string;
   shouldShowFileTree?: boolean;  // NEW: Whether to show file-related features
+  disableAutocontext?: boolean;  // Whether to skip context gathering
   onFormat: (rawText: string, contextStr: string, isVoiceInput?: boolean, contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]) => Promise<void>;
 }
 
@@ -14,6 +15,7 @@ export const RawInput: React.FC<RawInputProps> = ({
   projectName,
   projectRoot,
   shouldShowFileTree = true,  // Default to true for backward compatibility
+  disableAutocontext = false,
   onFormat,
 }) => {
   const [rawText, setRawText] = useState(initialValue);
@@ -25,6 +27,7 @@ export const RawInput: React.FC<RawInputProps> = ({
   const [autocompleteQuery, setAutocompleteQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const searchingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when initialValue changes (e.g., after formatting or project switch)
   useEffect(() => {
@@ -263,8 +266,8 @@ export const RawInput: React.FC<RawInputProps> = ({
       let contextString = '';
       let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
 
-      // Only gather context for code projects
-      if (shouldShowFileTree && projectRoot) {
+      // Only gather context if not disabled and for code projects
+      if (!disableAutocontext && shouldShowFileTree && projectRoot) {
         setFormatStatus('GATHERING');
 
         // Gather context from @mentions and auto-discovery
@@ -298,7 +301,20 @@ export const RawInput: React.FC<RawInputProps> = ({
         }
       }
 
+      // Show SEARCHING state for life admin projects (web search may occur)
+      if (!shouldShowFileTree) {
+        setFormatStatus('SEARCHING');
+        // Small delay to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       setFormatStatus('ANALYZING');
+
+      // After 20 seconds of analyzing, switch to SEARCHING (likely doing web search)
+      searchingTimeoutRef.current = setTimeout(() => {
+        setFormatStatus('SEARCHING');
+      }, 20000);
+
       await onFormat(rawText, contextString, false, contextFiles);
 
       setFormatStatus('FORMATTING');
@@ -306,6 +322,11 @@ export const RawInput: React.FC<RawInputProps> = ({
       console.error('Format error:', error);
       alert(`Failed to format: ${error.message}`);
     } finally {
+      // Clear the timeout
+      if (searchingTimeoutRef.current) {
+        clearTimeout(searchingTimeoutRef.current);
+        searchingTimeoutRef.current = null;
+      }
       setFormatting(false);
       setFormatStatus('');
     }

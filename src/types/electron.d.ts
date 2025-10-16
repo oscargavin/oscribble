@@ -67,6 +67,8 @@ export interface ElectronAPI {
   logPriorityEdit: (entry: any, projectName: string) => Promise<{ success: boolean; error?: string }>;
   getRecentPriorityEdits: (projectName: string, limit?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
   getPriorityEditStats: (projectName: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  // Open external URL in default browser
+  openExternal: (url: string) => Promise<void>;
 }
 
 declare global {

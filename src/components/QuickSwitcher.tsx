@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Clipboard, Wrench } from 'lucide-react';
 import { ProjectSettings } from '../types';
 
 interface QuickSwitcherProps {
@@ -186,6 +186,9 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
                       {hotkeyNumber}
                     </span>
                   )}
+                  <span className="flex-shrink-0 text-[var(--text-dim)]">
+                    {project.type === 'life_admin' ? <Clipboard size={14} /> : <Wrench size={14} />}
+                  </span>
                   <span className="font-mono truncate">{project.name}</span>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">

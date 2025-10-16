@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, ExternalLink, Trash2, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Trash2, Plus, Clipboard, Wrench } from 'lucide-react';
 import { ProjectSettings } from '../types';
 
 interface ProjectSwitcherProps {
@@ -124,8 +124,8 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
                     {hotkeyNumber}
                   </span>
                 )}
-                <span className="text-sm flex-shrink-0">
-                  {project.type === 'life_admin' ? '📋' : '🔧'}
+                <span className="flex-shrink-0 text-[var(--text-dim)]">
+                  {project.type === 'life_admin' ? <Clipboard size={14} /> : <Wrench size={14} />}
                 </span>
                 <span className="font-mono truncate">{project.name}</span>
               </div>
