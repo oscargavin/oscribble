@@ -35,7 +35,6 @@ function App() {
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [userContext, setUserContext] = useState("");
   const [preferredModel, setPreferredModel] = useState<ModelId>(DEFAULT_MODEL);
-  const [disableAutocontext, setDisableAutocontext] = useState(false);
   const [userLocation, setUserLocation] = useState<{ city?: string; region?: string; country?: string; }>();
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>('unchecked');
@@ -99,11 +98,6 @@ function App() {
         // Load preferred model if present
         if (settings?.preferred_model) {
           setPreferredModel(settings.preferred_model);
-        }
-
-        // Load disable autocontext preference
-        if (settings?.disable_autocontext !== undefined) {
-          setDisableAutocontext(settings.disable_autocontext);
         }
 
         // Load user location
@@ -298,7 +292,6 @@ function App() {
         openai_api_key: openaiApiKey || undefined,
         user_context: userContext || undefined,
         preferred_model: preferredModel,
-        disable_autocontext: disableAutocontext,
         user_location: userLocation,
       });
 
@@ -474,33 +467,31 @@ function App() {
       let contextString = '';
       let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
 
-      // Only gather context if not disabled
-      if (!disableAutocontext) {
-        setVoiceStatus('GATHERING');
-        // Gather context from transcript (includes @mentions and auto-discovery)
-        const contextResult = await window.electronAPI.gatherProjectContext(
-          transcript,
-          projectRoot
-        );
+      // Always gather context for voice input
+      setVoiceStatus('GATHERING');
+      // Gather context from transcript (includes @mentions and auto-discovery)
+      const contextResult = await window.electronAPI.gatherProjectContext(
+        transcript,
+        projectRoot
+      );
 
-        if (contextResult.success && contextResult.data) {
-          const gc = contextResult.data;
-          contextString = gc.files.map(f => {
-            const header = f.wasGrepped
-              ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
-              : `--- ${f.path} ---`;
-            return `${header}\n${f.content}`;
-          }).join('\n\n');
+      if (contextResult.success && contextResult.data) {
+        const gc = contextResult.data;
+        contextString = gc.files.map(f => {
+          const header = f.wasGrepped
+            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
+            : `--- ${f.path} ---`;
+          return `${header}\n${f.content}`;
+        }).join('\n\n');
 
-          // Extract file metadata for storage with tasks
-          contextFiles = gc.files.map(f => ({
-            path: f.path,
-            wasGrepped: f.wasGrepped,
-            matchedKeywords: f.matchedKeywords
-          }));
+        // Extract file metadata for storage with tasks
+        contextFiles = gc.files.map(f => ({
+          path: f.path,
+          wasGrepped: f.wasGrepped,
+          matchedKeywords: f.matchedKeywords
+        }));
 
-          console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
-        }
+        console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
       }
 
       // Show SEARCHING state for life admin projects (web search may occur)
@@ -607,11 +598,11 @@ function App() {
       // Get appropriate strategy
       const strategy = getContextStrategy(projectType);
 
-      // Only gather context if not disabled, strategy requires it, and context not already provided
+      // Gather context if strategy requires it and context not already provided
       let finalContextStr = contextStr;
       let finalContextFiles = contextFiles;
 
-      if (!disableAutocontext && strategy.shouldShowFileTree() && !contextStr) {
+      if (strategy.shouldShowFileTree() && !contextStr) {
         // Gather context using strategy
         const gatheredContext = await strategy.gatherContext(textToFormat, projectRoot);
         finalContextStr = gatheredContext.files.map(f => {
@@ -899,7 +890,6 @@ function App() {
             projectName={projectName}
             projectRoot={projectRoot}
             shouldShowFileTree={getContextStrategy(projectType).shouldShowFileTree()}
-            disableAutocontext={disableAutocontext}
             onFormat={handleFormat}
           />
         )}
@@ -934,9 +924,8 @@ function App() {
           currentOpenAIApiKey={openaiApiKey}
           currentUserContext={userContext}
           currentModel={preferredModel}
-          currentDisableAutocontext={disableAutocontext}
           currentLocation={userLocation}
-          onSave={(newApiKey, newOpenaiApiKey, newUserContext, newModel, newDisableAutocontext, newLocation) => {
+          onSave={(newApiKey, newOpenaiApiKey, newUserContext, newModel, newLocation) => {
             setApiKey(newApiKey);
             if (newOpenaiApiKey) {
               setOpenaiApiKey(newOpenaiApiKey);
@@ -946,9 +935,6 @@ function App() {
             }
             if (newModel) {
               setPreferredModel(newModel);
-            }
-            if (newDisableAutocontext !== undefined) {
-              setDisableAutocontext(newDisableAutocontext);
             }
             if (newLocation !== undefined) {
               setUserLocation(newLocation);
