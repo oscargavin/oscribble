@@ -3,8 +3,6 @@
 raw notes → structured tasks.
 brutalist task manager. claude ai.
 
-![oscribble interface](screenshot.png)
-
 ### code projects with intelligent context
 
 ![code project view](project-screenshot.png)
