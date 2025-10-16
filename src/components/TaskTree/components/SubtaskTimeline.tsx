@@ -133,13 +133,23 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2, delay: 0.05 }}
-                            className="space-y-0 text-xs font-mono"
+                            className="space-y-0 text-xs font-mono relative"
                           >
+                            {/* Vertical trunk line for all notes except after the last one */}
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.2, delay: 0.05 }}
+                              className="absolute left-[0.2rem] top-0 bottom-0 w-[1px] bg-[#888888]"
+                              style={{ height: "calc(100% - 1em)" }}
+                            />
+
                             {subtask.metadata.notes.map(
                               (note, noteIdx) => {
                                 const isLastNote =
                                   noteIdx ===
                                   subtask.metadata!.notes!.length - 1;
+                                const branch = isLastNote ? "└─" : "├─";
                                 return (
                                   <motion.div
                                     key={noteIdx}
@@ -150,15 +160,11 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                                       delay: 0.1 + noteIdx * 0.05,
                                     }}
                                     className="flex items-start gap-2 relative"
+                                    style={{ lineHeight: "1.2" }}
                                   >
-                                    <div className="relative flex-shrink-0 w-4 flex items-start">
-                                      {!isLastNote && (
-                                        <div className="absolute top-1 left-[3px] w-[1px] h-full bg-[#888888]" />
-                                      )}
-                                      <span className="text-[#888888] relative z-10">
-                                        {isLastNote ? "└─" : "├─"}
-                                      </span>
-                                    </div>
+                                    <span className="text-[#888888] flex-shrink-0 mr-1 z-10 bg-[var(--bg-primary)]">
+                                      {branch}
+                                    </span>
                                     <span className="text-[#888888] flex-1 leading-tight py-0.5">
                                       <CitedText text={note} citations={subtask.metadata?.citations} />
                                     </span>

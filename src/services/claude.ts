@@ -246,6 +246,12 @@ export class ClaudeService {
       city?: string;
       region?: string;
       country?: string;
+    },
+    taskGenPreferences?: {
+      analysisStyle?: 'minimal' | 'contextual' | 'analytical' | 'prescriptive';
+      suggestSolutions?: boolean;
+      autoDetectMissingTasks?: boolean;
+      enableWebSearch?: boolean;
     }
   ): Promise<ClaudeFormatResponse> {
     // Build few-shot examples from recent completions if available
@@ -290,6 +296,47 @@ Analyze and structure these tasks.`;
         ? LIFE_ADMIN_SYSTEM_PROMPT
         : SYSTEM_PROMPT;
 
+      // Apply task generation preferences to modify the prompt
+      const prefs = taskGenPreferences || {};
+      const analysisStyle = prefs.analysisStyle || 'analytical';
+      const suggestSolutions = prefs.suggestSolutions !== false; // Default true
+      const autoDetectMissingTasks = prefs.autoDetectMissingTasks !== false; // Default true
+
+      // Modify prompt based on analysis style
+      if (projectType === 'code') {
+        if (analysisStyle === 'minimal') {
+          // Minimal: Just parse and structure
+          systemPrompt = systemPrompt.replace(
+            'Given raw bullet-point tasks and code context, you should:\n1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency and impact\n2. Identify dependencies and blockers\n3. Detect missing tasks based on code context\n4. Suggest reordering for logical execution\n5. Flag potential issues\n6. Extract deadlines, effort estimates, and tags from task descriptions',
+            'Given raw bullet-point tasks, you should:\n1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency\n2. Extract deadlines, effort estimates, and tags from task descriptions'
+          );
+        } else if (analysisStyle === 'contextual') {
+          // Contextual: Add file references for MCP workflows
+          systemPrompt = systemPrompt.replace(
+            'Given raw bullet-point tasks and code context, you should:\n1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency and impact\n2. Identify dependencies and blockers\n3. Detect missing tasks based on code context\n4. Suggest reordering for logical execution\n5. Flag potential issues\n6. Extract deadlines, effort estimates, and tags from task descriptions',
+            'Given raw bullet-point tasks and code context, you should:\n1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency\n2. Identify relevant code files for context\n3. Extract deadlines, effort estimates, and tags from task descriptions\n\nIMPORTANT: Focus on identifying which files are relevant to each task. Add file paths to the notes array for MCP agent workflows.'
+          );
+        } else if (analysisStyle === 'prescriptive') {
+          // Prescriptive: Include detailed solution suggestions
+          systemPrompt = systemPrompt.replace(
+            'Given raw bullet-point tasks and code context, you should:\n1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency and impact\n2. Identify dependencies and blockers\n3. Detect missing tasks based on code context\n4. Suggest reordering for logical execution\n5. Flag potential issues\n6. Extract deadlines, effort estimates, and tags from task descriptions',
+            'Given raw bullet-point tasks and code context, you should:\n1. Parse tasks and assign priorities (HIGH, MEDIUM, LOW) based on urgency and impact\n2. Identify dependencies and blockers\n3. Detect missing tasks based on code context\n4. Suggest reordering for logical execution\n5. Flag potential issues\n6. Extract deadlines, effort estimates, and tags from task descriptions\n7. Suggest specific implementation approaches and solutions in the notes'
+          );
+        }
+        // For 'analytical' (default), use the prompt as-is
+
+        // Toggle suggest solutions
+        if (!suggestSolutions && analysisStyle !== 'prescriptive') {
+          // Remove solution-focused language from notes
+          systemPrompt = systemPrompt + '\n\nIMPORTANT: In task notes, focus on context and requirements rather than implementation solutions.';
+        }
+
+        // Toggle auto-detect missing tasks
+        if (!autoDetectMissingTasks) {
+          systemPrompt = systemPrompt.replace('3. Detect missing tasks based on code context\n', '');
+        }
+      }
+
       // Prepend date/time and user context to life admin prompt
       if (projectType === 'life_admin') {
         const now = new Date();
@@ -316,7 +363,8 @@ Analyze and structure these tasks.`;
 
       // Build tools array for life admin (web search)
       const tools: any[] = [];
-      if (projectType === 'life_admin') {
+      const enableWebSearch = prefs.enableWebSearch !== false; // Default true
+      if (projectType === 'life_admin' && enableWebSearch) {
         const webSearchTool: any = {
           type: 'web_search_20250305',
           name: 'web_search',

@@ -11,12 +11,20 @@ interface SettingsProps {
     region?: string;
     country?: string;
   };
+  currentAnalysisStyle?: 'minimal' | 'contextual' | 'analytical' | 'prescriptive';
+  currentSuggestSolutions?: boolean;
+  currentAutoDetectMissingTasks?: boolean;
+  currentEnableWebSearch?: boolean;
   onSave: (
     apiKey: string,
     openaiApiKey?: string,
     userContext?: string,
     model?: ModelId,
-    location?: { city?: string; region?: string; country?: string }
+    location?: { city?: string; region?: string; country?: string },
+    analysisStyle?: 'minimal' | 'contextual' | 'analytical' | 'prescriptive',
+    suggestSolutions?: boolean,
+    autoDetectMissingTasks?: boolean,
+    enableWebSearch?: boolean
   ) => void;
   onClose: () => void;
 }
@@ -27,6 +35,10 @@ export const Settings: React.FC<SettingsProps> = ({
   currentUserContext,
   currentModel,
   currentLocation,
+  currentAnalysisStyle,
+  currentSuggestSolutions,
+  currentAutoDetectMissingTasks,
+  currentEnableWebSearch,
   onSave,
   onClose,
 }) => {
@@ -37,6 +49,10 @@ export const Settings: React.FC<SettingsProps> = ({
   const [locationCity, setLocationCity] = useState(currentLocation?.city || '');
   const [locationRegion, setLocationRegion] = useState(currentLocation?.region || '');
   const [locationCountry, setLocationCountry] = useState(currentLocation?.country || '');
+  const [analysisStyle, setAnalysisStyle] = useState<'minimal' | 'contextual' | 'analytical' | 'prescriptive'>(currentAnalysisStyle || 'analytical');
+  const [suggestSolutions, setSuggestSolutions] = useState(currentSuggestSolutions ?? true);
+  const [autoDetectMissingTasks, setAutoDetectMissingTasks] = useState(currentAutoDetectMissingTasks ?? true);
+  const [enableWebSearch, setEnableWebSearch] = useState(currentEnableWebSearch ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [testingAnthropic, setTestingAnthropic] = useState(false);
@@ -45,6 +61,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const [openaiTestResult, setOpenaiTestResult] = useState<'success' | 'error' | null>(null);
   const [showAnthropicKey, setShowAnthropicKey] = useState(false);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
+  const [activeTab, setActiveTab] = useState<'api-keys' | 'model-profile' | 'task-generation'>('api-keys');
 
   const maskApiKey = (key: string): string => {
     if (!key || key.length < 8) return key;
@@ -127,7 +144,7 @@ export const Settings: React.FC<SettingsProps> = ({
         country: locationCountry.trim() || undefined,
       } : undefined;
 
-      // Get current settings and update API keys, user context, model, and location
+      // Get current settings and update API keys, user context, model, location, and task generation preferences
       const settings = await window.electronAPI.getSettings();
       await window.electronAPI.saveSettings({
         ...settings,
@@ -136,9 +153,13 @@ export const Settings: React.FC<SettingsProps> = ({
         user_context: userContext.trim() || undefined,
         preferred_model: selectedModel,
         user_location: location,
+        analysis_style: analysisStyle,
+        suggest_solutions: suggestSolutions,
+        auto_detect_missing_tasks: autoDetectMissingTasks,
+        enable_web_search: enableWebSearch,
       });
 
-      onSave(apiKey, openaiApiKey, userContext, selectedModel, location);
+      onSave(apiKey, openaiApiKey, userContext, selectedModel, location, analysisStyle, suggestSolutions, autoDetectMissingTasks, enableWebSearch);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -147,8 +168,8 @@ export const Settings: React.FC<SettingsProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 no-drag">
-      <div className="bg-black border border-[var(--text-dim)] w-full max-w-md max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 no-drag" onClick={onClose}>
+      <div className="bg-black border border-[var(--text-dim)] w-full max-w-md h-[600px] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 pb-4 border-b border-[var(--text-dim)]">
           <h2 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
             Settings
@@ -161,8 +182,49 @@ export const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex border-b border-[var(--text-dim)] no-drag">
+          <button
+            type="button"
+            onClick={() => setActiveTab('api-keys')}
+            className={`flex-1 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              activeTab === 'api-keys'
+                ? 'bg-[var(--text-dim)]/10 text-[#FF4D00] border-b-2 border-[#FF4D00]'
+                : 'text-[var(--text-dim)] hover:text-[var(--text-primary)] border-b-2 border-transparent'
+            }`}
+          >
+            API Keys & Model
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('model-profile')}
+            className={`flex-1 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              activeTab === 'model-profile'
+                ? 'bg-[var(--text-dim)]/10 text-[#FF4D00] border-b-2 border-[#FF4D00]'
+                : 'text-[var(--text-dim)] hover:text-[var(--text-primary)] border-b-2 border-transparent'
+            }`}
+          >
+            Profile
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('task-generation')}
+            className={`flex-1 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              activeTab === 'task-generation'
+                ? 'bg-[var(--text-dim)]/10 text-[#FF4D00] border-b-2 border-[#FF4D00]'
+                : 'text-[var(--text-dim)] hover:text-[var(--text-primary)] border-b-2 border-transparent'
+            }`}
+          >
+            Task Generation
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+
+          {/* API Keys Tab */}
+          {activeTab === 'api-keys' && (
+            <>
           {/* Anthropic API Key Section */}
           <div>
             <label
@@ -193,27 +255,30 @@ export const Settings: React.FC<SettingsProps> = ({
                 >
                   {showAnthropicKey ? "HIDE" : "SHOW"}
                 </button>
-              </div>
-              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleTestAnthropic}
                   disabled={testingAnthropic || !apiKey}
-                  className="px-3 py-1.5 bg-black text-[var(--text-dim)] border border-[var(--text-dim)] hover:border-[#FF4D00] hover:text-[#FF4D00] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs uppercase tracking-wider"
+                  className="px-3 py-2 bg-black text-[var(--text-dim)] border border-[var(--text-dim)] hover:border-[#FF4D00] hover:text-[#FF4D00] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs uppercase tracking-wider"
+                  title="Test connection"
                 >
-                  {testingAnthropic ? 'TESTING...' : 'TEST CONNECTION'}
+                  {testingAnthropic ? '...' : 'TEST'}
                 </button>
-                {anthropicTestResult === 'success' && (
-                  <span className="flex items-center text-xs text-green-500 font-mono">
-                    ✓ CONNECTED
-                  </span>
-                )}
-                {anthropicTestResult === 'error' && (
-                  <span className="flex items-center text-xs text-[#FF4D00] font-mono">
-                    ✕ FAILED
-                  </span>
-                )}
               </div>
+              {(anthropicTestResult === 'success' || anthropicTestResult === 'error') && (
+                <div className="flex gap-2">
+                  {anthropicTestResult === 'success' && (
+                    <span className="flex items-center text-xs text-green-500 font-mono">
+                      ✓ CONNECTED
+                    </span>
+                  )}
+                  {anthropicTestResult === 'error' && (
+                    <span className="flex items-center text-xs text-[#FF4D00] font-mono">
+                      ✕ FAILED
+                    </span>
+                  )}
+                </div>
+              )}
               {currentApiKey && !showAnthropicKey && (
                 <p className="text-xs text-[var(--text-dim)] font-mono">
                   Current: {maskApiKey(currentApiKey)}
@@ -262,27 +327,30 @@ export const Settings: React.FC<SettingsProps> = ({
                 >
                   {showOpenAIKey ? "HIDE" : "SHOW"}
                 </button>
-              </div>
-              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleTestOpenAI}
                   disabled={testingOpenAI || !openaiApiKey.trim()}
-                  className="px-3 py-1.5 bg-black text-[var(--text-dim)] border border-[var(--text-dim)] hover:border-[#FF4D00] hover:text-[#FF4D00] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs uppercase tracking-wider"
+                  className="px-3 py-2 bg-black text-[var(--text-dim)] border border-[var(--text-dim)] hover:border-[#FF4D00] hover:text-[#FF4D00] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs uppercase tracking-wider"
+                  title="Test connection"
                 >
-                  {testingOpenAI ? 'TESTING...' : 'TEST CONNECTION'}
+                  {testingOpenAI ? '...' : 'TEST'}
                 </button>
-                {openaiTestResult === 'success' && (
-                  <span className="flex items-center text-xs text-green-500 font-mono">
-                    ✓ CONNECTED
-                  </span>
-                )}
-                {openaiTestResult === 'error' && (
-                  <span className="flex items-center text-xs text-[#FF4D00] font-mono">
-                    ✕ FAILED
-                  </span>
-                )}
               </div>
+              {(openaiTestResult === 'success' || openaiTestResult === 'error') && (
+                <div className="flex gap-2">
+                  {openaiTestResult === 'success' && (
+                    <span className="flex items-center text-xs text-green-500 font-mono">
+                      ✓ CONNECTED
+                    </span>
+                  )}
+                  {openaiTestResult === 'error' && (
+                    <span className="flex items-center text-xs text-[#FF4D00] font-mono">
+                      ✕ FAILED
+                    </span>
+                  )}
+                </div>
+              )}
               {currentOpenAIApiKey && !showOpenAIKey && (
                 <p className="text-xs text-[var(--text-dim)] font-mono">
                   Current: {maskApiKey(currentOpenAIApiKey)}
@@ -342,7 +410,12 @@ export const Settings: React.FC<SettingsProps> = ({
               ))}
             </div>
           </div>
+            </>
+          )}
 
+          {/* Model & Profile Tab */}
+          {activeTab === 'model-profile' && (
+            <>
           {/* Location Section */}
           <div>
             <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
@@ -398,6 +471,142 @@ export const Settings: React.FC<SettingsProps> = ({
               </p>
             </div>
           </div>
+            </>
+          )}
+
+          {/* Task Generation Tab */}
+          {activeTab === 'task-generation' && (
+            <>
+          {/* Task Generation Preferences Section */}
+          <div>
+            <label className="block text-[10px] font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
+              Task Generation Preferences
+            </label>
+            <div className="space-y-4">
+              {/* Analysis Style */}
+              <div>
+                <label className="block text-[10px] text-[var(--text-dim)] mb-2 uppercase tracking-wider">
+                  Analysis Style
+                </label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'minimal', label: 'Minimal', desc: 'Just parse and structure tasks' },
+                    { value: 'contextual', label: 'Contextual', desc: 'Add file references for agent workflows' },
+                    { value: 'analytical', label: 'Analytical', desc: 'Full analysis with insights (default)' },
+                    { value: 'prescriptive', label: 'Prescriptive', desc: 'Include solution suggestions' }
+                  ].map((style) => (
+                    <button
+                      key={style.value}
+                      type="button"
+                      onClick={() => setAnalysisStyle(style.value as any)}
+                      className={`w-full px-3 py-2 bg-black border transition-all text-left ${
+                        analysisStyle === style.value
+                          ? 'border-[#FF4D00]'
+                          : 'border-[var(--text-dim)] hover:border-[var(--text-primary)]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-xs text-[var(--text-primary)] font-mono">
+                            {style.label}
+                          </div>
+                          <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                            {style.desc}
+                          </div>
+                        </div>
+                        {analysisStyle === style.value && (
+                          <span className="text-[#FF4D00] text-xs">✓</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Toggle: Suggest Solutions */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <div className="text-xs text-[var(--text-primary)] font-mono">
+                    Suggest Solutions
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                    Include implementation approaches in task notes
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSuggestSolutions(!suggestSolutions)}
+                  className={`w-12 h-6 border transition-colors ${
+                    suggestSolutions
+                      ? 'bg-[#FF4D00] border-[#FF4D00]'
+                      : 'bg-black border-[var(--text-dim)]'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 transition-transform ${
+                      suggestSolutions ? 'bg-black translate-x-7' : 'bg-[var(--text-dim)] translate-x-1'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Toggle: Auto-detect Missing Tasks */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <div className="text-xs text-[var(--text-primary)] font-mono">
+                    Auto-detect Missing Tasks
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                    Suggest additional tasks based on context
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoDetectMissingTasks(!autoDetectMissingTasks)}
+                  className={`w-12 h-6 border transition-colors ${
+                    autoDetectMissingTasks
+                      ? 'bg-[#FF4D00] border-[#FF4D00]'
+                      : 'bg-black border-[var(--text-dim)]'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 transition-transform ${
+                      autoDetectMissingTasks ? 'bg-black translate-x-7' : 'bg-[var(--text-dim)] translate-x-1'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              {/* Toggle: Enable Web Search */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <div className="text-xs text-[var(--text-primary)] font-mono">
+                    Enable Web Search (Life Admin)
+                  </div>
+                  <div className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                    Search for current info, costs, and deadlines
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnableWebSearch(!enableWebSearch)}
+                  className={`w-12 h-6 border transition-colors ${
+                    enableWebSearch
+                      ? 'bg-[#FF4D00] border-[#FF4D00]'
+                      : 'bg-black border-[var(--text-dim)]'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 transition-transform ${
+                      enableWebSearch ? 'bg-black translate-x-7' : 'bg-[var(--text-dim)] translate-x-1'
+                    }`}
+                  />
+                </button>
+              </label>
+            </div>
+          </div>
+            </>
+          )}
           </div>
 
           <div className="px-6 py-4 border-t border-[var(--text-dim)] space-y-4">

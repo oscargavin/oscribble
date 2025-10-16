@@ -375,10 +375,16 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
       }
     }
 
-    // Load user context, preferred model, and location from settings
+    // Load user context, preferred model, location, and task generation preferences from settings
     let userContext: string | undefined;
     let preferredModel: any;
     let userLocation: { city?: string; region?: string; country?: string; } | undefined;
+    let taskGenPreferences: {
+      analysisStyle?: 'minimal' | 'contextual' | 'analytical' | 'prescriptive';
+      suggestSolutions?: boolean;
+      autoDetectMissingTasks?: boolean;
+      enableWebSearch?: boolean;
+    } = {};
     try {
       const settings = await StorageService.getSettings();
       if (settings) {
@@ -392,12 +398,26 @@ ipcMain.handle('format-with-claude', async (_, rawText: string, contextStr: stri
         }
         // Load preferred model (applies to all projects)
         preferredModel = settings.preferred_model;
+
+        // Load task generation preferences
+        if (settings.analysis_style) {
+          taskGenPreferences.analysisStyle = settings.analysis_style;
+        }
+        if (settings.suggest_solutions !== undefined) {
+          taskGenPreferences.suggestSolutions = settings.suggest_solutions;
+        }
+        if (settings.auto_detect_missing_tasks !== undefined) {
+          taskGenPreferences.autoDetectMissingTasks = settings.auto_detect_missing_tasks;
+        }
+        if (settings.enable_web_search !== undefined) {
+          taskGenPreferences.enableWebSearch = settings.enable_web_search;
+        }
       }
     } catch (error) {
       console.warn('Failed to load settings:', error);
     }
 
-    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks, userContext, preferredModel, userLocation);
+    const response = await claudeService.formatTasks(rawText, contextStr, isVoiceInput, finalProjectType, recentCompletions, existingTasks, userContext, preferredModel, userLocation, taskGenPreferences);
     return { success: true, data: response };
   } catch (error) {
     return { success: false, error: error.message };

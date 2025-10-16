@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Mic, Loader2, FileText, ListTodo, Circle, Check, AlertCircle, Ban, List, Network } from "lucide-react";
+import {
+  Mic,
+  Loader2,
+  FileText,
+  ListTodo,
+  Circle,
+  Check,
+  AlertCircle,
+  Ban,
+  List,
+  Network,
+} from "lucide-react";
 import { Setup } from "./components/Setup";
 import { RawInput } from "./components/RawInput";
 import { TaskTree } from "./components/TaskTree";
@@ -7,42 +18,63 @@ import { TaskMapView } from "./components/TaskMapView";
 import { Settings } from "./components/Settings";
 import { ProjectSwitcher } from "./components/ProjectSwitcher";
 import { QuickSwitcher } from "./components/QuickSwitcher";
-import { TaskNode, NotesFile, ClaudeFormatResponse, ProjectType } from "./types";
+import {
+  TaskNode,
+  NotesFile,
+  ClaudeFormatResponse,
+  ProjectType,
+} from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { useProjects } from "./hooks/useProjects";
 import { useVoiceRecording } from "./hooks/useVoiceRecording";
-import { mapDependencyReferences, ensureTaskTitle, normalizeReferences } from "./utils/dependencyMapper";
+import {
+  mapDependencyReferences,
+  ensureTaskTitle,
+  normalizeReferences,
+} from "./utils/dependencyMapper";
 import { getContextStrategy } from "./services/context-strategy";
 import { ModelId, getModelColor, DEFAULT_MODEL } from "./config/models";
 import logo from "./oscribble-logo.png";
 
 type View = "setup" | "raw" | "tasks" | "map";
-type FilterMode = 'all' | 'unchecked' | 'complete' | 'high' | 'blocked';
+type FilterMode = "all" | "unchecked" | "complete" | "high" | "blocked";
 
 function App() {
   const [view, setView] = useState<View>("setup");
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectRoot, setProjectRoot] = useState("");
-  const [projectType, setProjectType] = useState<ProjectType>('code');
+  const [projectType, setProjectType] = useState<ProjectType>("code");
   const [rawText, setRawText] = useState("");
   const [tasks, setTasks] = useState<TaskNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showQuickSwitcher, setShowQuickSwitcher] = useState(false);
-  const [showContextFiles, setShowContextFiles] = useState<Set<string>>(new Set());
+  const [showContextFiles, setShowContextFiles] = useState<Set<string>>(
+    new Set()
+  );
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [userContext, setUserContext] = useState("");
   const [preferredModel, setPreferredModel] = useState<ModelId>(DEFAULT_MODEL);
-  const [userLocation, setUserLocation] = useState<{ city?: string; region?: string; country?: string; }>();
+  const [userLocation, setUserLocation] = useState<{
+    city?: string;
+    region?: string;
+    country?: string;
+  }>();
+  const [analysisStyle, setAnalysisStyle] = useState<
+    "minimal" | "contextual" | "analytical" | "prescriptive"
+  >("analytical");
+  const [suggestSolutions, setSuggestSolutions] = useState(true);
+  const [autoDetectMissingTasks, setAutoDetectMissingTasks] = useState(true);
+  const [enableWebSearch, setEnableWebSearch] = useState(true);
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
-  const [filterMode, setFilterMode] = useState<FilterMode>('unchecked');
+  const [filterMode, setFilterMode] = useState<FilterMode>("unchecked");
 
   // Voice recording state
   const { isRecording, startRecording, stopRecording } = useVoiceRecording();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState<string>('');
+  const [voiceStatus, setVoiceStatus] = useState<string>("");
 
   // Use the projects hook for centralized project state management
   const { projects, refreshProjects } = useProjects();
@@ -58,7 +90,7 @@ function App() {
       try {
         // Check if project was passed via URL parameter
         const urlParams = new URLSearchParams(window.location.search);
-        const urlProject = urlParams.get('project');
+        const urlProject = urlParams.get("project");
 
         const settings = await window.electronAPI.getSettings();
 
@@ -69,10 +101,7 @@ function App() {
             settings.api_key
           );
           if (!initResult.success) {
-            console.error(
-              "Failed to re-initialize Claude:",
-              initResult.error
-            );
+            console.error("Failed to re-initialize Claude:", initResult.error);
           }
         }
 
@@ -105,6 +134,20 @@ function App() {
           setUserLocation(settings.user_location);
         }
 
+        // Load task generation preferences
+        if (settings?.analysis_style) {
+          setAnalysisStyle(settings.analysis_style);
+        }
+        if (settings?.suggest_solutions !== undefined) {
+          setSuggestSolutions(settings.suggest_solutions);
+        }
+        if (settings?.auto_detect_missing_tasks !== undefined) {
+          setAutoDetectMissingTasks(settings.auto_detect_missing_tasks);
+        }
+        if (settings?.enable_web_search !== undefined) {
+          setEnableWebSearch(settings.enable_web_search);
+        }
+
         // Determine which project to load:
         // 1. URL parameter (for new windows opened for specific projects)
         // 2. settings.current_project (for first window or last used)
@@ -116,12 +159,10 @@ function App() {
 
           // Load project data
           const projects = await window.electronAPI.getProjects();
-          const project = projects.find(
-            (p: any) => p.name === targetProject
-          );
+          const project = projects.find((p: any) => p.name === targetProject);
           if (project) {
             setProjectRoot(project.path);
-            setProjectType(project.type || 'code'); // Load project type
+            setProjectType(project.type || "code"); // Load project type
           }
 
           // Load raw text
@@ -181,6 +222,11 @@ function App() {
         e.preventDefault();
         setShowQuickSwitcher(true);
       }
+      // Settings: Cmd+S or Ctrl+S
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        setShowSettings(true);
+      }
       // Close window: Cmd+W or Ctrl+W
       if ((e.metaKey || e.ctrlKey) && e.key === "w") {
         e.preventDefault();
@@ -197,17 +243,28 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
         e.preventDefault();
         const projectIndex = parseInt(e.key, 10) - 1;
-        if (alphabeticalProjects[projectIndex] && alphabeticalProjects[projectIndex].name !== projectName) {
+        if (
+          alphabeticalProjects[projectIndex] &&
+          alphabeticalProjects[projectIndex].name !== projectName
+        ) {
           handleProjectSwitch(alphabeticalProjects[projectIndex].name);
         }
       }
       // Toggle between raw and tasks view: Cmd+T
-      if ((e.metaKey || e.ctrlKey) && e.key === "t" && (tasks.length > 0 || view === "tasks" || view === "map")) {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key === "t" &&
+        (tasks.length > 0 || view === "tasks" || view === "map")
+      ) {
         e.preventDefault();
         toggleView();
       }
       // Toggle to map view: Cmd+M
-      if ((e.metaKey || e.ctrlKey) && e.key === "m" && (tasks.length > 0 || view === "map")) {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key === "m" &&
+        (tasks.length > 0 || view === "map")
+      ) {
         e.preventDefault();
         setView(view === "map" ? "tasks" : "map");
       }
@@ -227,25 +284,27 @@ function App() {
     window.electronAPI.startWatchingProject(projectName);
 
     // Listen for file changes
-    const unsubscribe = window.electronAPI.onNotesChanged(async (changedProject) => {
-      // Only reload if the change is for our current project
-      if (changedProject === projectName) {
-        console.log('External change detected, reloading tasks...');
-        try {
-          const notes = await window.electronAPI.getNotes(projectName);
-          if (notes && notes.tasks) {
-            setTasks(notes.tasks);
-            setLastFormattedRaw(notes.last_formatted_raw || "");
-            // If we have tasks and we're in raw view, switch to tasks view
-            if (notes.tasks.length > 0 && view === "raw") {
-              setView("tasks");
+    const unsubscribe = window.electronAPI.onNotesChanged(
+      async (changedProject) => {
+        // Only reload if the change is for our current project
+        if (changedProject === projectName) {
+          console.log("External change detected, reloading tasks...");
+          try {
+            const notes = await window.electronAPI.getNotes(projectName);
+            if (notes && notes.tasks) {
+              setTasks(notes.tasks);
+              setLastFormattedRaw(notes.last_formatted_raw || "");
+              // If we have tasks and we're in raw view, switch to tasks view
+              if (notes.tasks.length > 0 && view === "raw") {
+                setView("tasks");
+              }
             }
+          } catch (error) {
+            console.error("Failed to reload tasks:", error);
           }
-        } catch (error) {
-          console.error('Failed to reload tasks:', error);
         }
       }
-    });
+    );
 
     // Cleanup: stop watching when component unmounts or project changes
     return () => {
@@ -293,6 +352,10 @@ function App() {
         user_context: userContext || undefined,
         preferred_model: preferredModel,
         user_location: userLocation,
+        analysis_style: analysisStyle,
+        suggest_solutions: suggestSolutions,
+        auto_detect_missing_tasks: autoDetectMissingTasks,
+        enable_web_search: enableWebSearch,
       });
 
       // Update project last_accessed time
@@ -307,7 +370,7 @@ function App() {
       // Then update project identity
       setProjectName(newProjectName);
       setProjectRoot(project.path);
-      setProjectType(project.type || 'code'); // Load project type
+      setProjectType(project.type || "code"); // Load project type
 
       // Load raw text (handle null case)
       const raw = await window.electronAPI.getRaw(newProjectName);
@@ -405,7 +468,7 @@ function App() {
     try {
       const result = await window.electronAPI.openProjectWindow(projectToOpen);
       if (!result.success) {
-        throw new Error(result.error || 'Failed to open window');
+        throw new Error(result.error || "Failed to open window");
       }
     } catch (error) {
       console.error("Failed to open project in new window:", error);
@@ -433,7 +496,9 @@ function App() {
     // Check if OpenAI is configured
     const settings = await window.electronAPI.getSettings();
     if (!settings?.openai_api_key) {
-      alert('OpenAI API key required for voice input. Please add it in Settings.');
+      alert(
+        "OpenAI API key required for voice input. Please add it in Settings."
+      );
       return;
     }
 
@@ -445,30 +510,35 @@ function App() {
     if (!isRecording) return;
 
     setIsProcessing(true);
-    setVoiceStatus('TRANSCRIBING');
+    setVoiceStatus("TRANSCRIBING");
     try {
       const audioBlob = await stopRecording();
       if (!audioBlob) {
-        throw new Error('No audio recorded');
+        throw new Error("No audio recorded");
       }
 
       // Convert blob to ArrayBuffer for IPC
       const arrayBuffer = await audioBlob.arrayBuffer();
 
       // Transcribe with OpenAI
-      const transcriptResult = await window.electronAPI.transcribeAudio(arrayBuffer);
+      const transcriptResult =
+        await window.electronAPI.transcribeAudio(arrayBuffer);
       if (!transcriptResult.success) {
-        throw new Error(transcriptResult.error || 'Transcription failed');
+        throw new Error(transcriptResult.error || "Transcription failed");
       }
 
       const transcript = transcriptResult.data;
 
       // Format gathered context for Claude
-      let contextString = '';
-      let contextFiles: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[] = [];
+      let contextString = "";
+      let contextFiles: {
+        path: string;
+        wasGrepped?: boolean;
+        matchedKeywords?: string[];
+      }[] = [];
 
       // Always gather context for voice input
-      setVoiceStatus('GATHERING');
+      setVoiceStatus("GATHERING");
       // Gather context from transcript (includes @mentions and auto-discovery)
       const contextResult = await window.electronAPI.gatherProjectContext(
         transcript,
@@ -477,41 +547,45 @@ function App() {
 
       if (contextResult.success && contextResult.data) {
         const gc = contextResult.data;
-        contextString = gc.files.map(f => {
-          const header = f.wasGrepped
-            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
-            : `--- ${f.path} ---`;
-          return `${header}\n${f.content}`;
-        }).join('\n\n');
+        contextString = gc.files
+          .map((f) => {
+            const header = f.wasGrepped
+              ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(", ")}) ---`
+              : `--- ${f.path} ---`;
+            return `${header}\n${f.content}`;
+          })
+          .join("\n\n");
 
         // Extract file metadata for storage with tasks
-        contextFiles = gc.files.map(f => ({
+        contextFiles = gc.files.map((f) => ({
           path: f.path,
           wasGrepped: f.wasGrepped,
-          matchedKeywords: f.matchedKeywords
+          matchedKeywords: f.matchedKeywords,
         }));
 
-        console.log(`Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`);
+        console.log(
+          `Context: ${gc.files.length} files, ${gc.totalLines} lines (${gc.cacheHits} cached)`
+        );
       }
 
       // Show SEARCHING state for life admin projects (web search may occur)
-      if (projectType === 'life_admin') {
-        setVoiceStatus('SEARCHING');
+      if (projectType === "life_admin") {
+        setVoiceStatus("SEARCHING");
         // Small delay to ensure UI updates
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
-      setVoiceStatus('ANALYZING');
+      setVoiceStatus("ANALYZING");
       // Format with Claude (with voice input flag)
       await handleFormat(transcript, contextString, true, contextFiles);
 
-      setVoiceStatus('FORMATTING');
+      setVoiceStatus("FORMATTING");
     } catch (error) {
-      console.error('Voice processing error:', error);
+      console.error("Voice processing error:", error);
       alert(`Voice processing failed: ${error.message}`);
     } finally {
       setIsProcessing(false);
-      setVoiceStatus('');
+      setVoiceStatus("");
     }
   };
 
@@ -526,14 +600,22 @@ function App() {
   const convertClaudeTaskToTaskNode = (
     claudeTask: any,
     priority: "high" | "medium" | "low",
-    contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[],
+    contextFiles?: {
+      path: string;
+      wasGrepped?: boolean;
+      matchedKeywords?: string[];
+    }[],
     citations?: { [index: string]: { url: string; title: string } }
   ): TaskNode => {
     const taskTitle = ensureTaskTitle(claudeTask);
 
     // Recursively convert subtasks if they exist
     let convertedSubtasks: TaskNode[] | undefined;
-    if (claudeTask.subtasks && Array.isArray(claudeTask.subtasks) && claudeTask.subtasks.length > 0) {
+    if (
+      claudeTask.subtasks &&
+      Array.isArray(claudeTask.subtasks) &&
+      claudeTask.subtasks.length > 0
+    ) {
       convertedSubtasks = claudeTask.subtasks.map((subtask: any) =>
         convertClaudeTaskToTaskNode(subtask, priority, contextFiles, citations)
       );
@@ -569,7 +651,11 @@ function App() {
     rawText: string,
     contextStr: string,
     isVoiceInput: boolean = false,
-    contextFiles?: { path: string; wasGrepped?: boolean; matchedKeywords?: string[]; }[]
+    contextFiles?: {
+      path: string;
+      wasGrepped?: boolean;
+      matchedKeywords?: string[];
+    }[]
   ) => {
     try {
       let textToFormat = rawText;
@@ -604,18 +690,23 @@ function App() {
 
       if (strategy.shouldShowFileTree() && !contextStr) {
         // Gather context using strategy
-        const gatheredContext = await strategy.gatherContext(textToFormat, projectRoot);
-        finalContextStr = gatheredContext.files.map(f => {
-          const header = f.wasGrepped
-            ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(', ')}) ---`
-            : `--- ${f.path} ---`;
-          return `${header}\n${f.content}`;
-        }).join('\n\n');
+        const gatheredContext = await strategy.gatherContext(
+          textToFormat,
+          projectRoot
+        );
+        finalContextStr = gatheredContext.files
+          .map((f) => {
+            const header = f.wasGrepped
+              ? `--- ${f.path} (grep: ${f.matchedKeywords?.join(", ")}) ---`
+              : `--- ${f.path} ---`;
+            return `${header}\n${f.content}`;
+          })
+          .join("\n\n");
 
-        finalContextFiles = gatheredContext.files.map(f => ({
+        finalContextFiles = gatheredContext.files.map((f) => ({
           path: f.path,
           wasGrepped: f.wasGrepped,
-          matchedKeywords: f.matchedKeywords
+          matchedKeywords: f.matchedKeywords,
         }));
       }
 
@@ -640,13 +731,22 @@ function App() {
       // Convert Claude response to TaskNode format (including subtasks)
       const newTasks: TaskNode[] = [];
 
-      console.log('🔍 Claude returned sections:', response.sections.length);
+      console.log("🔍 Claude returned sections:", response.sections.length);
       for (const section of response.sections) {
         console.log(`🔍 Section has ${section.tasks.length} tasks`);
         for (const task of section.tasks) {
-          console.log(`🔍 Task: "${task.text}" with ${task.subtasks?.length || 0} subtasks`);
+          console.log(
+            `🔍 Task: "${task.text}" with ${task.subtasks?.length || 0} subtasks`
+          );
           const priority = section.priority as "high" | "medium" | "low";
-          newTasks.push(convertClaudeTaskToTaskNode(task, priority, finalContextFiles, citations));
+          newTasks.push(
+            convertClaudeTaskToTaskNode(
+              task,
+              priority,
+              finalContextFiles,
+              citations
+            )
+          );
         }
       }
       console.log(`🔍 Total tasks created: ${newTasks.length}`);
@@ -734,7 +834,13 @@ function App() {
   };
 
   const cycleFilterMode = () => {
-    const modes: FilterMode[] = ['unchecked', 'all', 'complete', 'high', 'blocked'];
+    const modes: FilterMode[] = [
+      "unchecked",
+      "all",
+      "complete",
+      "high",
+      "blocked",
+    ];
     const currentIndex = modes.indexOf(filterMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     setFilterMode(modes[nextIndex]);
@@ -742,21 +848,31 @@ function App() {
 
   const getFilterIcon = () => {
     switch (filterMode) {
-      case 'all': return <List size={14} />;
-      case 'unchecked': return <Circle size={14} />;
-      case 'complete': return <Check size={14} />;
-      case 'high': return <AlertCircle size={14} />;
-      case 'blocked': return <Ban size={14} />;
+      case "all":
+        return <List size={14} />;
+      case "unchecked":
+        return <Circle size={14} />;
+      case "complete":
+        return <Check size={14} />;
+      case "high":
+        return <AlertCircle size={14} />;
+      case "blocked":
+        return <Ban size={14} />;
     }
   };
 
   const getFilterTitle = () => {
     switch (filterMode) {
-      case 'unchecked': return 'Incomplete tasks (1)';
-      case 'all': return 'All tasks (2)';
-      case 'complete': return 'Complete tasks (3)';
-      case 'high': return 'High priority tasks (4)';
-      case 'blocked': return 'Blocked tasks (5)';
+      case "unchecked":
+        return "Incomplete tasks (1)";
+      case "all":
+        return "All tasks (2)";
+      case "complete":
+        return "Complete tasks (3)";
+      case "high":
+        return "High priority tasks (4)";
+      case "blocked":
+        return "Blocked tasks (5)";
     }
   };
 
@@ -787,7 +903,7 @@ function App() {
             src={logo}
             alt="Oscribble"
             className="h-6 w-auto"
-            style={{ imageRendering: 'crisp-edges' }}
+            style={{ imageRendering: "crisp-edges" }}
           />
           <ProjectSwitcher
             projects={projects}
@@ -798,7 +914,9 @@ function App() {
             onOpenInNewWindow={handleOpenInNewWindow}
           />
           {voiceStatus && (
-            <span className="text-xs text-[#888888] font-mono uppercase">{voiceStatus}...</span>
+            <span className="text-xs text-[#888888] font-mono uppercase">
+              {voiceStatus}...
+            </span>
           )}
         </div>
         <div className="flex items-center gap-3 no-drag">
@@ -807,7 +925,7 @@ function App() {
             className="w-[28px] h-[28px] flex items-center justify-center border text-[10px] font-bold font-mono transition-colors duration-75"
             style={{
               borderColor: getModelColor(preferredModel),
-              color: getModelColor(preferredModel)
+              color: getModelColor(preferredModel),
             }}
             title={`Claude ${preferredModel.toUpperCase()}`}
           >
@@ -829,9 +947,17 @@ function App() {
               <button
                 onClick={toggleView}
                 className="h-[28px] w-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
-                title={view === "raw" ? "Switch to tasks view (Cmd+T)" : "Switch to raw view (Cmd+T)"}
+                title={
+                  view === "raw"
+                    ? "Switch to tasks view (Cmd+T)"
+                    : "Switch to raw view (Cmd+T)"
+                }
               >
-                {view === "raw" ? <ListTodo size={16} /> : <FileText size={16} />}
+                {view === "raw" ? (
+                  <ListTodo size={16} />
+                ) : (
+                  <FileText size={16} />
+                )}
               </button>
               <button
                 onClick={() => setView(view === "map" ? "tasks" : "map")}
@@ -840,7 +966,11 @@ function App() {
                     ? "border-[#FF4D00] text-[#FF4D00]"
                     : "border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]"
                 }`}
-                title={view === "map" ? "Switch to list view (Cmd+M)" : "Switch to map view (Cmd+M)"}
+                title={
+                  view === "map"
+                    ? "Switch to list view (Cmd+M)"
+                    : "Switch to map view (Cmd+M)"
+                }
               >
                 <Network size={16} />
               </button>
@@ -852,12 +982,16 @@ function App() {
             disabled={isProcessing}
             className={`w-[28px] h-[28px] flex items-center justify-center border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
               isRecording
-                ? 'bg-red-600 border-red-600 text-white animate-pulse'
+                ? "bg-red-600 border-red-600 text-white animate-pulse"
                 : isProcessing
-                ? 'bg-[#333333] border-[#444444] text-[#888888]'
-                : 'border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]'
+                  ? "bg-[#333333] border-[#444444] text-[#888888]"
+                  : "border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]"
             }`}
-            title={isRecording ? "Stop recording (Cmd+R or ESC)" : "Start recording (Cmd+R)"}
+            title={
+              isRecording
+                ? "Stop recording (Cmd+R or ESC)"
+                : "Start recording (Cmd+R)"
+            }
           >
             {isProcessing ? (
               <Loader2 size={14} className="animate-spin" />
@@ -868,7 +1002,7 @@ function App() {
           <button
             onClick={() => setShowSettings(true)}
             className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[#888888] border border-[#444444] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
-            title="Settings"
+            title="Settings (CMD+S)"
           >
             ⚙
           </button>
@@ -889,7 +1023,9 @@ function App() {
             initialValue={rawText}
             projectName={projectName}
             projectRoot={projectRoot}
-            shouldShowFileTree={getContextStrategy(projectType).shouldShowFileTree()}
+            shouldShowFileTree={getContextStrategy(
+              projectType
+            ).shouldShowFileTree()}
             onFormat={handleFormat}
           />
         )}
@@ -904,7 +1040,9 @@ function App() {
             showContextFiles={showContextFiles}
             setShowContextFiles={setShowContextFiles}
             hasVoice={!!openaiApiKey}
-            shouldShowFileTree={getContextStrategy(projectType).shouldShowFileTree()}
+            shouldShowFileTree={getContextStrategy(
+              projectType
+            ).shouldShowFileTree()}
           />
         )}
         {view === "map" && (
@@ -925,7 +1063,21 @@ function App() {
           currentUserContext={userContext}
           currentModel={preferredModel}
           currentLocation={userLocation}
-          onSave={(newApiKey, newOpenaiApiKey, newUserContext, newModel, newLocation) => {
+          currentAnalysisStyle={analysisStyle}
+          currentSuggestSolutions={suggestSolutions}
+          currentAutoDetectMissingTasks={autoDetectMissingTasks}
+          currentEnableWebSearch={enableWebSearch}
+          onSave={(
+            newApiKey,
+            newOpenaiApiKey,
+            newUserContext,
+            newModel,
+            newLocation,
+            newAnalysisStyle,
+            newSuggestSolutions,
+            newAutoDetectMissingTasks,
+            newEnableWebSearch
+          ) => {
             setApiKey(newApiKey);
             if (newOpenaiApiKey) {
               setOpenaiApiKey(newOpenaiApiKey);
@@ -938,6 +1090,18 @@ function App() {
             }
             if (newLocation !== undefined) {
               setUserLocation(newLocation);
+            }
+            if (newAnalysisStyle !== undefined) {
+              setAnalysisStyle(newAnalysisStyle);
+            }
+            if (newSuggestSolutions !== undefined) {
+              setSuggestSolutions(newSuggestSolutions);
+            }
+            if (newAutoDetectMissingTasks !== undefined) {
+              setAutoDetectMissingTasks(newAutoDetectMissingTasks);
+            }
+            if (newEnableWebSearch !== undefined) {
+              setEnableWebSearch(newEnableWebSearch);
             }
             setShowSettings(false);
           }}

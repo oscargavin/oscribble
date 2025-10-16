@@ -1,7 +1,7 @@
 {
   "name": "oscribble",
   "productName": "Oscribble",
-  "version": "1.3.1",
+  "version": "1.3.3",
   "description": "A brutalist task manager that transforms raw notes into AI-analyzed, structured task lists",
   "main": ".webpack/main",
   "scripts": {
