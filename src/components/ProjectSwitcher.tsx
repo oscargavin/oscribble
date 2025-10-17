@@ -94,7 +94,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[#0A0A0A] transition-colors border border-[var(--text-dim)] hover:border-[#FF4D00]"
+        className="h-[28px] flex items-center gap-2 px-3 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors border border-[var(--text-dim)] hover:border-[var(--accent-orange)]"
       >
         <span className="font-mono">{currentProject}</span>
         {isOpen ? (
@@ -105,7 +105,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-72 bg-black border border-[var(--text-primary)] z-[100] max-h-80 overflow-y-auto no-drag">
+        <div className="absolute top-full left-0 mt-1 w-72 bg-[var(--bg-primary)] border border-[var(--text-primary)] z-[100] max-h-80 overflow-y-auto no-drag">
           {sortedProjects && sortedProjects.length > 0 ? sortedProjects.map((project) => {
             const hotkeyNumber = getHotkeyNumber(project.name);
             return (
@@ -113,8 +113,8 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
               key={project.name}
               className={`relative group flex items-center justify-between px-3 py-2.5 text-xs transition-all cursor-pointer border-b border-[var(--text-dim)]/30 last:border-0 ${
                 project.name === currentProject
-                  ? 'bg-[#0A0A0A] text-[var(--text-primary)] border-l-2 border-l-[#FF4D00] pl-[10px]'
-                  : 'text-[var(--text-primary)] hover:bg-[#0A0A0A]'
+                  ? 'bg-[var(--bg-elevated)] text-[var(--text-primary)] border-l-2 border-l-[var(--accent-orange)] pl-[10px]'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
               }`}
               onClick={() => handleSelect(project.name)}
             >
@@ -133,7 +133,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
                 {onOpenInNewWindow && project.name !== currentProject && (
                   <button
                     onClick={(e) => handleOpenInNewWindow(e, project.name)}
-                    className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-[#FF4D00]/10 text-[var(--text-dim)] hover:text-[#FF4D00] z-10"
+                    className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-[var(--accent-orange)]/10 text-[var(--text-dim)] hover:text-[var(--accent-orange)] z-10"
                     title="Open in new window"
                   >
                     <ExternalLink size={14} />
@@ -166,7 +166,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
                 setIsOpen(false);
                 onNewProject();
               }}
-              className="w-full px-3 py-2.5 text-left text-xs text-[#FF4D00] hover:bg-[#FF4D00]/10 transition-colors uppercase tracking-wider flex items-center gap-2"
+              className="w-full px-3 py-2.5 text-left text-xs text-[var(--accent-orange)] hover:bg-[var(--accent-orange)]/10 transition-colors uppercase tracking-wider flex items-center gap-2"
             >
               <Plus size={14} />
               <span>New Project</span>

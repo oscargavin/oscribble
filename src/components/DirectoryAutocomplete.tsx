@@ -96,15 +96,15 @@ export const DirectoryAutocomplete: React.FC<DirectoryAutocompleteProps> = ({
           key={dir}
           className={`px-3 py-2 cursor-pointer text-xs font-mono transition-opacity border-l-2 ${
             index === selectedIndex
-              ? 'bg-[#FF4D00]/10 text-[var(--text-primary)] border-[#FF4D00]'
-              : 'text-[var(--text-primary)] hover:opacity-70 border-transparent hover:border-[#FF4D00]/50'
+              ? 'bg-[var(--accent-orange)]/10 text-[var(--text-primary)] border-[var(--accent-orange)]'
+              : 'text-[var(--text-primary)] hover:opacity-70 border-transparent hover:border-[var(--accent-orange)]/50'
           }`}
           onClick={() => onSelect(dir)}
           onMouseEnter={() => setSelectedIndex(index)}
           title={dir}
         >
           <div className="flex items-center gap-2">
-            <span className={`flex-shrink-0 ${index === selectedIndex ? 'text-[#FF4D00]' : 'text-[var(--text-dim)]'}`}>
+            <span className={`flex-shrink-0 ${index === selectedIndex ? 'text-[var(--accent-orange)]' : 'text-[var(--text-dim)]'}`}>
               [DIR]
             </span>
             <span className="flex-1">

@@ -18,20 +18,20 @@ export const MODELS: Record<ModelId, ModelConfig> = {
     name: 'SONNET',
     apiModel: 'claude-sonnet-4-5-20250929',
     description: 'Intelligent • Best for complex analysis',
-    color: '#FF4D00', // Deep orange
+    color: 'var(--accent-orange)', // Base accent color
   },
   haiku: {
     id: 'haiku',
     name: 'HAIKU',
     apiModel: 'claude-haiku-4-5-20251001',
     description: 'Fast • Economical • Best for simple tasks',
-    color: '#FF8C4D', // Light orange
+    color: 'var(--accent-light)', // Lighter variant
   },
   balanced: {
     id: 'balanced',
     name: 'BALANCED',
     description: 'Haiku for discovery • Sonnet for generation',
-    color: '#FF6D27', // Mid orange
+    color: 'var(--accent-medium)', // Medium variant
   },
 };
 

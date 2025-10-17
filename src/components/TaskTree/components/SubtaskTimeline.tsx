@@ -55,7 +55,7 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
               {!isLastSubtask && (
                 <div
                   className={`absolute top-5 bottom-[-2px] left-1/2 -translate-x-1/2 w-[2px] transition-colors duration-300 ${
-                    subtask.checked ? "bg-[#FF4D00]" : "bg-[#333333]"
+                    subtask.checked ? "bg-[var(--accent-orange)]" : "bg-[var(--border-subtle)]"
                   }`}
                 />
               )}
@@ -84,10 +84,10 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
             {/* Subtask content */}
             <div className="flex-1 pb-4">
               <motion.div
-                className={`pl-3 rounded-sm ${isSubtaskFocused ? "bg-[#0A0A0A]" : ""}`}
+                className={`pl-3 rounded-sm ${isSubtaskFocused ? "bg-[var(--bg-elevated)]" : ""}`}
                 animate={{
-                  backgroundColor: isSubtaskFocused ? "#0A0A0A" : "transparent",
-                  borderColor: isSubtaskFocused ? "#222222" : "transparent",
+                  backgroundColor: isSubtaskFocused ? "var(--bg-elevated)" : "transparent",
+                  borderColor: isSubtaskFocused ? "var(--border-primary)" : "transparent",
                 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
                 onClick={() =>
@@ -105,10 +105,10 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                   <span
                     className={`text-sm font-mono transition-colors duration-200 ${
                       subtask.checked
-                        ? "line-through text-[#666666]"
+                        ? "line-through text-[var(--text-dim)]"
                         : isSubtaskFocused
-                          ? "text-[#FFFFFF]"
-                          : "text-[#E6E6E6]"
+                          ? "text-[var(--text-inverse)]"
+                          : "text-[var(--text-primary)]"
                     }`}
                   >
                     {index + 1}. {subtask.text}
@@ -140,7 +140,7 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.2, delay: 0.05 }}
-                              className="absolute left-[0.2rem] top-0 bottom-0 w-[1px] bg-[#888888]"
+                              className="absolute left-[0.2rem] top-0 bottom-0 w-[1px] bg-[var(--text-secondary)]"
                               style={{ height: "calc(100% - 1em)" }}
                             />
 
@@ -162,10 +162,10 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                                     className="flex items-start gap-2 relative"
                                     style={{ lineHeight: "1.2" }}
                                   >
-                                    <span className="text-[#888888] flex-shrink-0 mr-1 z-10 bg-[var(--bg-primary)]">
+                                    <span className="text-[var(--text-secondary)] flex-shrink-0 mr-1 z-10 bg-[var(--bg-primary)]">
                                       {branch}
                                     </span>
-                                    <span className="text-[#888888] flex-1 leading-tight py-0.5">
+                                    <span className="text-[var(--text-secondary)] flex-1 leading-tight py-0.5">
                                       <CitedText text={note} citations={subtask.metadata?.citations} />
                                     </span>
                                   </motion.div>
@@ -192,11 +192,11 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                               transition={{ duration: 0.2, delay: 0.2 }}
                               className={`text-xs px-2 py-0.5 border font-mono uppercase tracking-wider ${
                                 subtask.metadata.priority === "high"
-                                  ? "border-[#FF4D00] text-[#FF4D00]"
+                                  ? "border-[var(--accent-orange)] text-[var(--accent-orange)]"
                                   : subtask.metadata.priority ===
                                       "medium"
-                                    ? "border-[#888888] text-[#888888]"
-                                    : "border-[#666666] text-[#666666]"
+                                    ? "border-[var(--text-secondary)] text-[var(--text-secondary)]"
+                                    : "border-[var(--text-dim)] text-[var(--text-dim)]"
                               }`}
                             >
                               {subtask.metadata.priority}
@@ -207,7 +207,7 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ duration: 0.2, delay: 0.25 }}
-                              className="text-xs px-2 py-0.5 border border-[#444444] text-[#888888] font-mono uppercase tracking-wider"
+                              className="text-xs px-2 py-0.5 border border-[var(--border-accent)] text-[var(--text-secondary)] font-mono uppercase tracking-wider"
                             >
                               DUE: {subtask.metadata.deadline}
                             </motion.span>
@@ -217,7 +217,7 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ duration: 0.2, delay: 0.3 }}
-                              className="text-xs px-2 py-0.5 border border-[#333333] text-[#666666] font-mono uppercase tracking-wider"
+                              className="text-xs px-2 py-0.5 border border-[var(--border-subtle)] text-[var(--text-dim)] font-mono uppercase tracking-wider"
                             >
                               EST: {subtask.metadata.effort_estimate}
                             </motion.span>
@@ -231,7 +231,7 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                                 subtask.metadata.attempts.length === 1
                                   ? "border-[#FFAA00] text-[#FFAA00]"
                                   : subtask.metadata.attempts.length === 2
-                                    ? "border-[#FF4D00] text-[#FF4D00]"
+                                    ? "border-[var(--accent-orange)] text-[var(--accent-orange)]"
                                     : "border-[#FF0000] text-[#FF0000]"
                               }`}
                               title={`${subtask.metadata.attempts.length} failed attempt${subtask.metadata.attempts.length > 1 ? 's' : ''}`}
@@ -274,7 +274,7 @@ export const SubtaskTimeline: React.FC<SubtaskTimelineProps> = ({
                                   duration: 0.2,
                                   delay: 0.4 + tagIdx * 0.05,
                                 }}
-                                className="text-xs px-2 py-0.5 border border-[#333333] text-[#666666] font-mono uppercase"
+                                className="text-xs px-2 py-0.5 border border-[var(--border-subtle)] text-[var(--text-dim)] font-mono uppercase"
                               >
                                 {tag}
                               </motion.span>

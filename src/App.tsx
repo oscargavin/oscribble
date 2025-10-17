@@ -35,6 +35,7 @@ import {
 import { getContextStrategy } from "./services/context-strategy";
 import { ModelId, getModelColor, DEFAULT_MODEL } from "./config/models";
 import logo from "./oscribble-logo.png";
+import logoLight from "./oscribble-light.png";
 
 type View = "setup" | "raw" | "tasks" | "map";
 type FilterMode = "all" | "unchecked" | "complete" | "high" | "blocked";
@@ -70,6 +71,9 @@ function App() {
   const [enableWebSearch, setEnableWebSearch] = useState(true);
   const [lastFormattedRaw, setLastFormattedRaw] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>("unchecked");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [accentColor, setAccentColor] = useState<string>("var(--accent-orange)");
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   // Voice recording state
   const { isRecording, startRecording, stopRecording } = useVoiceRecording();
@@ -148,6 +152,21 @@ function App() {
           setEnableWebSearch(settings.enable_web_search);
         }
 
+        // Load theme preference
+        if (settings?.theme) {
+          setTheme(settings.theme);
+        }
+
+        // Load accent color preference
+        if (settings?.accent_color) {
+          setAccentColor(settings.accent_color);
+        }
+
+        // Load reduce motion preference
+        if (settings?.reduce_motion !== undefined) {
+          setReduceMotion(settings.reduce_motion);
+        }
+
         // Determine which project to load:
         // 1. URL parameter (for new windows opened for specific projects)
         // 2. settings.current_project (for first window or last used)
@@ -203,6 +222,74 @@ function App() {
 
     checkSetup();
   }, []);
+
+  // Apply theme to document element
+  useEffect(() => {
+    if (theme === "light") {
+      document.documentElement.classList.add("light-theme");
+    } else {
+      document.documentElement.classList.remove("light-theme");
+    }
+  }, [theme]);
+
+  // Apply accent color to CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+
+    // Helper function to convert color to rgba
+    const hexToRgba = (color: string, alpha: number): string => {
+      // Handle var(--accent-orange) case - use the computed color from CSS
+      if (color.startsWith('var(')) {
+        const computedColor = getComputedStyle(root).getPropertyValue('--accent-orange').trim();
+        return hexToRgba(computedColor, alpha);
+      }
+
+      // Parse hex color
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    // Helper function to lighten a color by mixing with white
+    const lightenColor = (color: string, amount: number): string => {
+      // Handle var(--accent-orange) case - use the computed color from CSS
+      if (color.startsWith('var(')) {
+        const computedColor = getComputedStyle(root).getPropertyValue('--accent-orange').trim();
+        return lightenColor(computedColor, amount);
+      }
+
+      // Parse hex color
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+
+      // Mix with white
+      const newR = Math.round(r + (255 - r) * amount);
+      const newG = Math.round(g + (255 - g) * amount);
+      const newB = Math.round(b + (255 - b) * amount);
+
+      return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    };
+
+    root.style.setProperty('--accent-orange', accentColor);
+    // Also update hover/derived colors based on the accent
+    root.style.setProperty('--accent-orange-hover', `${accentColor}cc`); // 80% opacity
+    root.style.setProperty('--accent-orange-bg', `${accentColor}1a`); // 10% opacity
+    root.style.setProperty('--accent-orange-border', `${accentColor}80`); // 50% opacity
+
+    // Calculate lighter variants for model indicators
+    root.style.setProperty('--accent-light', lightenColor(accentColor, 0.40)); // 40% lighter
+    root.style.setProperty('--accent-medium', lightenColor(accentColor, 0.20)); // 20% lighter
+
+    // Calculate scrollbar colors
+    root.style.setProperty('--scrollbar-thumb', hexToRgba(accentColor, 0.6));
+    root.style.setProperty('--scrollbar-thumb-hover', hexToRgba(accentColor, 0.8));
+    root.style.setProperty('--scrollbar-thumb-active', hexToRgba(accentColor, 1));
+  }, [accentColor]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -356,6 +443,9 @@ function App() {
         suggest_solutions: suggestSolutions,
         auto_detect_missing_tasks: autoDetectMissingTasks,
         enable_web_search: enableWebSearch,
+        theme: theme,
+        accent_color: accentColor,
+        reduce_motion: reduceMotion,
       });
 
       // Update project last_accessed time
@@ -849,15 +939,15 @@ function App() {
   const getFilterIcon = () => {
     switch (filterMode) {
       case "all":
-        return <List size={14} />;
+        return <List size={16} />;
       case "unchecked":
-        return <Circle size={14} />;
+        return <Circle size={16} />;
       case "complete":
-        return <Check size={14} />;
+        return <Check size={16} />;
       case "high":
-        return <AlertCircle size={14} />;
+        return <AlertCircle size={16} />;
       case "blocked":
-        return <Ban size={14} />;
+        return <Ban size={16} />;
     }
   };
 
@@ -899,12 +989,14 @@ function App() {
       {/* Header - Draggable region */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 drag-region">
         <div className="flex items-center gap-6 no-drag">
-          <img
-            src={logo}
-            alt="Oscribble"
-            className="h-6 w-auto"
-            style={{ imageRendering: "crisp-edges" }}
-          />
+          <a
+            href="https://oscr.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-[56px] h-[28px] flex items-center justify-center border border-[var(--border-accent)] text-[var(--text-primary)] font-mono text-[10px] tracking-wider uppercase opacity-60 hover:opacity-100 hover:border-[var(--accent-orange)] transition-all"
+          >
+            OSCR
+          </a>
           <ProjectSwitcher
             projects={projects}
             currentProject={projectName}
@@ -914,7 +1006,7 @@ function App() {
             onOpenInNewWindow={handleOpenInNewWindow}
           />
           {voiceStatus && (
-            <span className="text-xs text-[#888888] font-mono uppercase">
+            <span className="text-xs text-[var(--text-secondary)] font-mono uppercase">
               {voiceStatus}...
             </span>
           )}
@@ -922,7 +1014,7 @@ function App() {
         <div className="flex items-center gap-3 no-drag">
           {/* Model Indicator */}
           <div
-            className="w-[28px] h-[28px] flex items-center justify-center border text-[10px] font-bold font-mono transition-colors duration-75"
+            className="w-[28px] h-[28px] flex items-center justify-center border text-[10px] font-mono transition-colors duration-150 opacity-60 hover:opacity-100"
             style={{
               borderColor: getModelColor(preferredModel),
               color: getModelColor(preferredModel),
@@ -935,7 +1027,7 @@ function App() {
           {view === "tasks" && (
             <button
               onClick={cycleFilterMode}
-              className="w-[28px] h-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+              className="w-[28px] h-[28px] flex items-center justify-center border border-[var(--border-accent)] text-[var(--text-secondary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors duration-200"
               title={getFilterTitle()}
             >
               {getFilterIcon()}
@@ -946,7 +1038,7 @@ function App() {
             <>
               <button
                 onClick={toggleView}
-                className="h-[28px] w-[28px] flex items-center justify-center border border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+                className="h-[28px] w-[28px] flex items-center justify-center border border-[var(--border-accent)] text-[var(--text-secondary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors duration-200"
                 title={
                   view === "raw"
                     ? "Switch to tasks view (Cmd+T)"
@@ -963,8 +1055,8 @@ function App() {
                 onClick={() => setView(view === "map" ? "tasks" : "map")}
                 className={`h-[28px] w-[28px] flex items-center justify-center border transition-colors duration-200 ${
                   view === "map"
-                    ? "border-[#FF4D00] text-[#FF4D00]"
-                    : "border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]"
+                    ? "border-[var(--accent-orange)] text-[var(--accent-orange)]"
+                    : "border-[var(--border-accent)] text-[var(--text-secondary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)]"
                 }`}
                 title={
                   view === "map"
@@ -984,8 +1076,8 @@ function App() {
               isRecording
                 ? "bg-red-600 border-red-600 text-white animate-pulse"
                 : isProcessing
-                  ? "bg-[#333333] border-[#444444] text-[#888888]"
-                  : "border-[#444444] text-[#888888] hover:border-[#FF4D00] hover:text-[#FF4D00]"
+                  ? "bg-[var(--border-subtle)] border-[var(--border-accent)] text-[var(--text-secondary)]"
+                  : "border-[var(--border-accent)] text-[var(--text-secondary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)]"
             }`}
             title={
               isRecording
@@ -994,21 +1086,21 @@ function App() {
             }
           >
             {isProcessing ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Mic size={14} />
+              <Mic size={16} />
             )}
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[#888888] border border-[#444444] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors duration-200"
+            className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[var(--text-secondary)] border border-[var(--border-accent)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors duration-200"
             title="Settings (CMD+S)"
           >
             ⚙
           </button>
           <button
             onClick={handleCloseWindow}
-            className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[#888888] border border-[#444444] hover:border-red-600 hover:text-red-600 transition-colors duration-200"
+            className="w-[28px] h-[28px] flex items-center justify-center text-sm leading-none text-[var(--text-secondary)] border border-[var(--border-accent)] hover:border-red-600 hover:text-red-600 transition-colors duration-200"
             title="Close Window (Cmd+W)"
           >
             ✕
@@ -1043,6 +1135,7 @@ function App() {
             shouldShowFileTree={getContextStrategy(
               projectType
             ).shouldShowFileTree()}
+            reduceMotion={reduceMotion}
           />
         )}
         {view === "map" && (
@@ -1067,6 +1160,9 @@ function App() {
           currentSuggestSolutions={suggestSolutions}
           currentAutoDetectMissingTasks={autoDetectMissingTasks}
           currentEnableWebSearch={enableWebSearch}
+          currentTheme={theme}
+          currentAccentColor={accentColor}
+          currentReduceMotion={reduceMotion}
           onSave={(
             newApiKey,
             newOpenaiApiKey,
@@ -1076,7 +1172,10 @@ function App() {
             newAnalysisStyle,
             newSuggestSolutions,
             newAutoDetectMissingTasks,
-            newEnableWebSearch
+            newEnableWebSearch,
+            newTheme,
+            newAccentColor,
+            newReduceMotion
           ) => {
             setApiKey(newApiKey);
             if (newOpenaiApiKey) {
@@ -1102,6 +1201,15 @@ function App() {
             }
             if (newEnableWebSearch !== undefined) {
               setEnableWebSearch(newEnableWebSearch);
+            }
+            if (newTheme !== undefined) {
+              setTheme(newTheme);
+            }
+            if (newAccentColor !== undefined) {
+              setAccentColor(newAccentColor);
+            }
+            if (newReduceMotion !== undefined) {
+              setReduceMotion(newReduceMotion);
             }
             setShowSettings(false);
           }}

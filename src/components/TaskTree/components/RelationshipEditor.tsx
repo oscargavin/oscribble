@@ -80,18 +80,18 @@ export const RelationshipEditor: React.FC<RelationshipEditorProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="bg-black border-2 border-[#FF4D00] w-[600px] max-h-[80vh] flex flex-col">
+      <div className="bg-black border-2 border-[var(--accent-orange)] w-[600px] max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-[#FF4D00]">
-          <h2 className="text-[#E6E6E6] font-mono text-sm uppercase tracking-wider mb-2">
+        <div className="p-4 border-b border-[var(--accent-orange)]">
+          <h2 className="text-[var(--text-primary)] font-mono text-sm uppercase tracking-wider mb-2">
             [EDIT RELATIONSHIPS]
           </h2>
-          <p className="text-[#888888] font-mono text-xs">{task.text}</p>
+          <p className="text-[var(--text-secondary)] font-mono text-xs">{task.text}</p>
         </div>
 
         {/* Task list */}
-        <div className="p-4 border-b border-[#333333] overflow-auto max-h-[200px]">
-          <h3 className="text-[#E6E6E6] font-mono text-xs uppercase tracking-wider mb-2">
+        <div className="p-4 border-b border-[var(--border-subtle)] overflow-auto max-h-[200px]">
+          <h3 className="text-[var(--text-primary)] font-mono text-xs uppercase tracking-wider mb-2">
             ALL TASKS:
           </h3>
           <div className="space-y-1">
@@ -99,7 +99,7 @@ export const RelationshipEditor: React.FC<RelationshipEditorProps> = ({
               <div
                 key={id}
                 className={`text-xs font-mono ${
-                  id === task.id ? "text-[#FF4D00]" : "text-[#888888]"
+                  id === task.id ? "text-[var(--accent-orange)]" : "text-[var(--text-secondary)]"
                 }`}
               >
                 {number}. {text} {id === task.id ? "(current)" : ""}
@@ -111,7 +111,7 @@ export const RelationshipEditor: React.FC<RelationshipEditorProps> = ({
         {/* Input fields */}
         <div className="p-4 space-y-4">
           <div>
-            <label className="text-[#E6E6E6] font-mono text-xs uppercase tracking-wider block mb-2">
+            <label className="text-[var(--text-primary)] font-mono text-xs uppercase tracking-wider block mb-2">
               DEPENDS ON (comma-separated numbers):
             </label>
             <input
@@ -120,13 +120,13 @@ export const RelationshipEditor: React.FC<RelationshipEditorProps> = ({
               onChange={(e) => setDependsOnInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="e.g., 1, 3, 5"
-              className="w-full bg-transparent text-[#E6E6E6] px-3 py-2 border border-[#E6E6E6] outline-none text-sm font-mono focus:border-[#FF4D00]"
+              className="w-full bg-transparent text-[var(--text-primary)] px-3 py-2 border border-[var(--text-primary)] outline-none text-sm font-mono focus:border-[var(--accent-orange)]"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="text-[#E6E6E6] font-mono text-xs uppercase tracking-wider block mb-2">
+            <label className="text-[var(--text-primary)] font-mono text-xs uppercase tracking-wider block mb-2">
               RELATED TO (comma-separated numbers):
             </label>
             <input
@@ -135,7 +135,7 @@ export const RelationshipEditor: React.FC<RelationshipEditorProps> = ({
               onChange={(e) => setRelatedToInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="e.g., 2, 4"
-              className="w-full bg-transparent text-[#E6E6E6] px-3 py-2 border border-[#E6E6E6] outline-none text-sm font-mono focus:border-[#FF4D00]"
+              className="w-full bg-transparent text-[var(--text-primary)] px-3 py-2 border border-[var(--text-primary)] outline-none text-sm font-mono focus:border-[var(--accent-orange)]"
             />
           </div>
 
@@ -143,13 +143,13 @@ export const RelationshipEditor: React.FC<RelationshipEditorProps> = ({
           <div className="flex gap-2 pt-2">
             <button
               onClick={handleSave}
-              className="flex-1 px-4 py-2 border border-[#E6E6E6] text-[#E6E6E6] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors uppercase font-mono text-xs tracking-wider"
+              className="flex-1 px-4 py-2 border border-[var(--text-primary)] text-[var(--text-primary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors uppercase font-mono text-xs tracking-wider"
             >
               [ENTER] SAVE
             </button>
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-[#666666] text-[#666666] hover:border-[#E6E6E6] hover:text-[#E6E6E6] transition-colors uppercase font-mono text-xs tracking-wider"
+              className="flex-1 px-4 py-2 border border-[var(--text-dim)] text-[var(--text-dim)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors uppercase font-mono text-xs tracking-wider"
             >
               [ESC] CANCEL
             </button>

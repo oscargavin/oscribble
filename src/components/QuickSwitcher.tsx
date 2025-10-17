@@ -148,7 +148,7 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-32 bg-black/80">
-      <div className="w-full max-w-xl bg-black border border-[var(--text-primary)]">
+      <div className="w-full max-w-xl bg-[var(--bg-primary)] border border-[var(--text-primary)]">
         {/* Search input */}
         <div className="p-3 border-b border-[var(--text-dim)]">
           <input
@@ -157,7 +157,7 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="switch project..."
-            className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+            className="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[var(--accent-orange)] text-sm font-mono"
           />
         </div>
 
@@ -176,8 +176,8 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
                 onClick={() => handleSelect(project.name)}
                 className={`group relative w-full px-3 py-2.5 text-left text-xs cursor-pointer transition-all flex items-center justify-between border-b border-[var(--text-dim)]/30 last:border-0 ${
                   index === selectedIndex
-                    ? 'bg-[#FF4D00]/10 text-[var(--text-primary)] border-l-2 border-l-[#FF4D00] pl-[10px]'
-                    : 'text-[var(--text-primary)] hover:bg-[#0A0A0A]'
+                    ? 'bg-[var(--accent-orange)]/10 text-[var(--text-primary)] border-l-2 border-l-[var(--accent-orange)] pl-[10px]'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
                 }`}
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -195,14 +195,14 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
                   {onOpenInNewWindow && project.name !== currentProject && (
                     <button
                       onClick={(e) => handleOpenInWindow(e, project.name)}
-                      className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-[#FF4D00]/10 text-[var(--text-dim)] hover:text-[#FF4D00] z-10"
+                      className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded hover:bg-[var(--accent-orange)]/10 text-[var(--text-dim)] hover:text-[var(--accent-orange)] z-10"
                       title="Open in new window (Shift+Enter)"
                     >
                       <ExternalLink size={14} />
                     </button>
                   )}
                   {project.name === currentProject ? (
-                    <span className="text-[10px] uppercase tracking-wider text-[#FF4D00] ml-1">current</span>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--accent-orange)] ml-1">current</span>
                   ) : (
                     <span className="text-[var(--text-dim)] text-[10px] uppercase tracking-wider ml-1">
                       {formatLastAccessed(project.last_accessed)}
@@ -216,7 +216,7 @@ export const QuickSwitcher: React.FC<QuickSwitcherProps> = ({
         </div>
 
         {/* Footer hint */}
-        <div className="px-4 py-2 border-t border-[var(--text-dim)] bg-black text-[10px] text-[var(--text-dim)] flex items-center justify-between uppercase tracking-wider">
+        <div className="px-4 py-2 border-t border-[var(--text-dim)] bg-[var(--bg-primary)] text-[10px] text-[var(--text-dim)] flex items-center justify-between uppercase tracking-wider">
           <span>↑↓ navigate • enter select • cmd+# switch{onOpenInNewWindow ? ' • shift+enter new window' : ''}</span>
           <span>esc close</span>
         </div>

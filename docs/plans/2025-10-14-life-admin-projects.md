@@ -2,7 +2,7 @@
 
 > **For Claude:** Use `${SUPERPOWERS_SKILLS_ROOT}/skills/collaboration/executing-plans/SKILL.md` to implement this plan task-by-task.
 
-**Goal:** Add life admin project type to Oscribble for non-code task management (personal, household, finance, etc.)
+**Goal:** Add life admin project type to OSCR for non-code task management (personal, household, finance, etc.)
 
 **Architecture:** Strategy pattern for context gathering - code projects use file discovery, life admin projects skip context. Both share task structure, UI, and dependency management. Different Claude prompts optimize for each domain.
 
@@ -329,7 +329,7 @@ Find the IPC handlers for getNotes and saveNotes. Update them to check project t
 
 ```typescript
 // For code projects: projectRoot/.oscribble-notes.json
-// For life admin: ~/Library/Application Support/Oscribble/life-admin-{name}.json
+// For life admin: ~/Library/Application Support/OSCR/life-admin-{name}.json
 
 ipcMain.handle('get-notes', async (event, projectName: string) => {
   try {
@@ -824,7 +824,7 @@ app.whenReady().then(() => {
 
 **Step 2: Test migration**
 
-1. Test with existing Oscribble installation
+1. Test with existing OSCR installation
 2. Verify existing projects default to 'code' type
 3. Verify they still work correctly
 
@@ -872,7 +872,7 @@ git commit -m "feat: update Electron API types for project type support"
 
 ## Summary
 
-This implementation adds life admin projects to Oscribble using a strategy pattern for context gathering. Key changes:
+This implementation adds life admin projects to OSCR using a strategy pattern for context gathering. Key changes:
 
 1. **Type System** - Added `ProjectType` and `ContextStrategy` interfaces
 2. **Strategy Pattern** - Separate strategies for code and life admin context

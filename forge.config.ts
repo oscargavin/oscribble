@@ -15,11 +15,11 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './oscribble.icns',
-    name: 'Oscribble',
-    executableName: 'Oscribble',
+    name: 'OSCR',
+    executableName: 'OSCR',
     extendInfo: {
       // Required for macOS to show microphone permission dialog
-      NSMicrophoneUsageDescription: 'Oscribble uses your microphone to transcribe voice input for tasks.',
+      NSMicrophoneUsageDescription: 'OSCR uses your microphone to transcribe voice input for tasks.',
     },
     // Disable explicit signing - let Electron auto-sign for distribution
     // osxSign: {},

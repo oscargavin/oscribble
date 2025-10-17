@@ -202,13 +202,13 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-black drag-region">
+    <div className="flex items-center justify-center h-screen bg-[var(--bg-primary)] drag-region">
       <div className="w-full max-w-md p-8 no-drag relative border border-[var(--text-dim)]">
         {/* Close button - only show if onCancel is provided (projects exist) */}
         {onCancel && (
           <button
             onClick={onCancel}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[var(--text-dim)] hover:text-[#FF4D00] hover:opacity-100 opacity-70 transition-opacity text-lg"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--accent-orange)] hover:opacity-100 opacity-70 transition-opacity text-lg"
             title="Cancel and return"
             aria-label="Close setup"
           >
@@ -217,7 +217,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
         )}
 
         <h1 className="text-sm font-bold text-[var(--text-primary)] mb-2 uppercase tracking-wider">
-          {existingApiKey ? 'New Project' : step === 'api_keys' ? 'Welcome to Oscribble' : step === 'about_you' ? 'About You' : 'New Project'}
+          {existingApiKey ? 'New Project' : step === 'api_keys' ? 'Welcome to OSCR' : step === 'about_you' ? 'About You' : 'New Project'}
         </h1>
         <p className="text-xs text-[var(--text-dim)] mb-8">
           {existingApiKey
@@ -245,7 +245,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-ant-..."
                 required
-                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+                className="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[var(--accent-orange)] text-sm font-mono"
               />
               <p className="text-xs text-[var(--text-dim)] mt-1">
                 get your api key from{' '}
@@ -253,7 +253,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                   href="https://console.anthropic.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#FF4D00] hover:opacity-70"
+                  className="text-[var(--accent-orange)] hover:opacity-70"
                 >
                   console.anthropic.com
                 </a>
@@ -274,7 +274,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                 onChange={(e) => setOpenaiApiKey(e.target.value)}
                 placeholder="sk-..."
                 required
-                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm font-mono"
+                className="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[var(--accent-orange)] text-sm font-mono"
               />
               <p className="text-xs text-[var(--text-dim)] mt-1">
                 for whisper transcription - get from{' '}
@@ -282,7 +282,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                   href="https://platform.openai.com/api-keys"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#FF4D00] hover:opacity-70"
+                  className="text-[var(--accent-orange)] hover:opacity-70"
                 >
                   platform.openai.com
                 </a>
@@ -290,7 +290,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
             </div>
 
             {error && (
-              <div className="p-3 bg-[#FF4D00]/10 border border-[#FF4D00] text-xs text-[#FF4D00]">
+              <div className="p-3 bg-[var(--accent-orange)]/10 border border-[var(--accent-orange)] text-xs text-[var(--accent-orange)]">
                 {error}
               </div>
             )}
@@ -298,7 +298,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
+              className="w-full px-4 py-3 bg-[var(--accent-orange)] text-black border border-[var(--accent-orange)] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
             >
               {loading ? 'Validating...' : 'Continue'}
             </button>
@@ -320,7 +320,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                 onChange={(e) => setUserContext(e.target.value)}
                 placeholder="e.g., I live in San Francisco, prefer morning tasks, working on a React project..."
                 rows={6}
-                className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm resize-none"
+                className="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[var(--accent-orange)] text-sm resize-none"
               />
               <p className="text-xs text-[var(--text-dim)] mt-1">
                 share your location, preferences, or context to help personalize task suggestions. completely optional.
@@ -331,14 +331,14 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
               <button
                 type="button"
                 onClick={handleAboutYouSkip}
-                className="flex-1 px-4 py-3 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors font-bold text-xs uppercase tracking-wider"
+                className="flex-1 px-4 py-3 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors font-bold text-xs uppercase tracking-wider"
               >
                 Skip
               </button>
               <button
                 type="button"
                 onClick={handleAboutYouContinue}
-                className="flex-1 px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 transition-opacity font-bold text-xs uppercase tracking-wider"
+                className="flex-1 px-4 py-3 bg-[var(--accent-orange)] text-black border border-[var(--accent-orange)] hover:opacity-80 transition-opacity font-bold text-xs uppercase tracking-wider"
               >
                 Continue
               </button>
@@ -363,7 +363,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="my-project"
               required
-              className="w-full px-3 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[#FF4D00] text-sm"
+              className="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] focus:outline-none focus:border-[var(--accent-orange)] text-sm"
             />
           </div>
 
@@ -378,7 +378,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                   value="code"
                   checked={projectType === 'code'}
                   onChange={(e) => setProjectType(e.target.value as ProjectType)}
-                  className="form-radio text-[#FF4D00] bg-black border-[var(--text-dim)] focus:ring-[#FF4D00]"
+                  className="form-radio text-[var(--accent-orange)] bg-[var(--bg-primary)] border-[var(--text-dim)] focus:ring-[var(--accent-orange)]"
                 />
                 <span className="text-sm text-[var(--text-primary)]">Code Project</span>
               </label>
@@ -388,7 +388,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                   value="life_admin"
                   checked={projectType === 'life_admin'}
                   onChange={(e) => setProjectType(e.target.value as ProjectType)}
-                  className="form-radio text-[#FF4D00] bg-black border-[var(--text-dim)] focus:ring-[#FF4D00]"
+                  className="form-radio text-[var(--accent-orange)] bg-[var(--bg-primary)] border-[var(--text-dim)] focus:ring-[var(--accent-orange)]"
                 />
                 <span className="text-sm text-[var(--text-primary)]">Life Admin</span>
               </label>
@@ -423,10 +423,10 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                   }}
                   placeholder="/Users/you/projects/my-project"
                   required
-                  className={`w-full px-3 py-2 bg-black text-[var(--text-primary)] border focus:outline-none text-sm font-mono ${
+                  className={`w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border focus:outline-none text-sm font-mono ${
                     loadingDirectories
                       ? 'loading-border'
-                      : 'border-[var(--text-dim)] focus:border-[#FF4D00]'
+                      : 'border-[var(--text-dim)] focus:border-[var(--accent-orange)]'
                   }`}
                 />
                 {showDirectoryAutocomplete && (
@@ -440,7 +440,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
               <button
                 type="button"
                 onClick={handleBrowse}
-                className="px-4 py-2 bg-black text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors text-xs uppercase tracking-wider"
+                className="px-4 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--text-dim)] hover:border-[var(--text-primary)] transition-colors text-xs uppercase tracking-wider"
               >
                 Browse
               </button>
@@ -450,7 +450,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
                 the root directory of your project for @file mentions
               </p>
               {loadingDirectories && (
-                <span className="text-xs text-[#FF4D00] shimmer flex items-center gap-1">
+                <span className="text-xs text-[var(--accent-orange)] shimmer flex items-center gap-1">
                   <span>•</span>
                   <span>searching</span>
                 </span>
@@ -460,7 +460,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
           )}
 
           {error && (
-            <div className="p-3 bg-[#FF4D00]/10 border border-[#FF4D00] text-xs text-[#FF4D00]">
+            <div className="p-3 bg-[var(--accent-orange)]/10 border border-[var(--accent-orange)] text-xs text-[var(--accent-orange)]">
               {error}
             </div>
           )}
@@ -468,7 +468,7 @@ export const Setup: React.FC<SetupProps> = ({ onComplete, existingApiKey, onCanc
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-3 bg-[#FF4D00] text-black border border-[#FF4D00] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
+              className="w-full px-4 py-3 bg-[var(--accent-orange)] text-black border border-[var(--accent-orange)] hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity font-bold text-xs uppercase tracking-wider"
             >
               {loading ? (existingApiKey ? 'Creating...' : 'Setting up...') : existingApiKey ? 'Create Project' : 'Get Started'}
             </button>

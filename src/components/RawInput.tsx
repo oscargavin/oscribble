@@ -341,25 +341,25 @@ export const RawInput: React.FC<RawInputProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-primary)]">
-      <div className="flex items-center justify-between p-3 border-b border-[#222222] bg-[#0A0A0A]">
+      <div className="flex items-center justify-between p-3 border-b border-[var(--border-primary)] bg-[var(--bg-elevated)]">
         <div className="flex items-center gap-3">
-          <h2 className="text-xs font-mono text-[#E6E6E6] uppercase tracking-wider">
+          <h2 className="text-xs font-mono text-[var(--text-primary)] uppercase tracking-wider">
             [RAW INPUT]
           </h2>
           {shouldShowFileTree && mentions.length > 0 && (
-            <span className="text-xs text-[#FF4D00] font-mono">
+            <span className="text-xs text-[var(--accent-orange)] font-mono">
               {mentions.length} @{mentions.length !== 1 ? 'FILES' : 'FILE'}
             </span>
           )}
           {saving && (
-            <span className="text-xs text-[#888888] font-mono uppercase">SAVING...</span>
+            <span className="text-xs text-[var(--text-secondary)] font-mono uppercase">SAVING...</span>
           )}
         </div>
         <div className="flex items-center gap-2 no-drag">
           <button
             onClick={() => handleFormat(true)}
             disabled={formatting || !rawText.trim()}
-            className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[#FF4D00] text-[#FF4D00] bg-transparent hover:bg-[#FF4D00] hover:text-[#000000] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2"
+            className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[var(--accent-orange)] text-[var(--accent-orange)] bg-transparent hover:bg-[var(--accent-orange)] hover:text-[var(--bg-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2"
           >
             {formatting ? (
               <span className="loading-ellipsis">{formatStatus}</span>
@@ -415,69 +415,69 @@ Examples:
       </div>
 
       {/* Keyboard shortcut hints */}
-      <div className="flex items-center gap-4 p-3 border-t border-[#222222] overflow-x-auto flex-nowrap bg-[#0A0A0A]">
+      <div className="flex items-center gap-4 p-3 border-t border-[var(--border-primary)] overflow-x-auto flex-nowrap bg-[var(--bg-elevated)]">
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">TOGGLE VIEW</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[var(--text-dim)]">+</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">T</kbd>
+              <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">TOGGLE VIEW</span>
             </div>
             {shouldShowFileTree && (
               <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-                <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-                <span className="text-[#666666]">+</span>
-                <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
-                <span className="text-[#888888] text-xs font-mono uppercase">CONTEXT FILES</span>
+                <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+                <span className="text-[var(--text-dim)]">+</span>
+                <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">O</kbd>
+                <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">CONTEXT FILES</span>
               </div>
             )}
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">L</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">CLEAR</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[var(--text-dim)]">+</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">L</kbd>
+              <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">CLEAR</span>
             </div>
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">FORMAT</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[var(--text-dim)]">+</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
+              <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">FORMAT</span>
             </div>
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">NO CONTEXT</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">CMD</kbd>
+              <span className="text-[var(--text-dim)]">+</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+              <span className="text-[var(--text-dim)]">+</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">ENTER</kbd>
+              <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">NO CONTEXT</span>
             </div>
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">INDENT</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
+              <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">INDENT</span>
             </div>
             <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
-              <span className="text-[#666666]">+</span>
-              <kbd className="px-3 py-1.5 border border-[#E6E6E6] text-[#E6E6E6] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
-              <span className="text-[#888888] text-xs font-mono uppercase">UNINDENT</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">SHIFT</kbd>
+              <span className="text-[var(--text-dim)]">+</span>
+              <kbd className="px-3 py-1.5 border border-[var(--text-primary)] text-[var(--text-primary)] text-xs font-mono bg-transparent min-w-[32px] text-center">TAB</kbd>
+              <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">UNINDENT</span>
             </div>
             {shouldShowFileTree && (
               <div className="keyboard-hint whitespace-nowrap flex items-center gap-2">
-                <kbd className="px-3 py-1.5 border border-[#FF4D00] text-[#FF4D00] text-xs font-mono bg-transparent min-w-[32px] text-center">@</kbd>
-                <span className="text-[#888888] text-xs font-mono uppercase">MENTION</span>
+                <kbd className="px-3 py-1.5 border border-[var(--accent-orange)] text-[var(--accent-orange)] text-xs font-mono bg-transparent min-w-[32px] text-center">@</kbd>
+                <span className="text-[var(--text-secondary)] text-xs font-mono uppercase">MENTION</span>
               </div>
             )}
       </div>
 
       {shouldShowFileTree && mentions.length > 0 && (
-        <div className="p-3 border-t border-[#222222] bg-[#0A0A0A]">
-          <div className="text-xs text-[#888888] mb-2 font-mono uppercase tracking-wider">
+        <div className="p-3 border-t border-[var(--border-primary)] bg-[var(--bg-elevated)]">
+          <div className="text-xs text-[var(--text-secondary)] mb-2 font-mono uppercase tracking-wider">
             [DETECTED FILES]
           </div>
           <div className="flex flex-wrap gap-2">
             {mentions.map((mention, idx) => (
               <span
                 key={idx}
-                className="px-2 py-1 text-xs border border-[#FF4D00] text-[#FF4D00] font-mono bg-transparent"
+                className="px-2 py-1 text-xs border border-[var(--accent-orange)] text-[var(--accent-orange)] font-mono bg-transparent"
               >
                 {mention}
               </span>

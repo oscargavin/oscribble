@@ -15,41 +15,41 @@ export const TaskNode = memo(({ data }: NodeProps) => {
   const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
     switch (priority) {
       case 'high':
-        return 'border-[#FF4D00] text-[#FF4D00]';
+        return 'border-[var(--accent-orange)] text-[var(--accent-orange)]';
       case 'medium':
-        return 'border-[#E6E6E6] text-[#E6E6E6]';
+        return 'border-[var(--text-primary)] text-[var(--text-primary)]';
       case 'low':
-        return 'border-[#666666] text-[#666666]';
+        return 'border-[var(--text-dim)] text-[var(--text-dim)]';
     }
   };
 
   const getPriorityBg = (priority: 'high' | 'medium' | 'low') => {
     switch (priority) {
       case 'high':
-        return 'bg-[#FF4D00]/10';
+        return 'bg-[var(--accent-orange)]/10';
       case 'medium':
-        return 'bg-[#E6E6E6]/5';
+        return 'bg-[var(--text-primary)]/5';
       case 'low':
-        return 'bg-[#666666]/5';
+        return 'bg-[var(--text-dim)]/5';
     }
   };
 
   return (
     <div
       className={`relative w-[320px] min-h-[120px] border-2 ${
-        task.checked ? 'border-[#444444] bg-[#0A0A0A]' : 'border-[#E6E6E6] bg-black'
+        task.checked ? 'border-[var(--border-accent)] bg-[var(--bg-elevated)]' : 'border-[var(--text-primary)] bg-[var(--bg-primary)]'
       } ${task.metadata?.priority ? getPriorityBg(task.metadata.priority) : ''} p-3`}
     >
       {/* Connection handles */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-[#FF4D00] !border-2 !border-black"
+        className="!w-2 !h-2 !bg-[var(--accent-orange)] !border-2 !border-[var(--bg-primary)]"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-[#FF4D00] !border-2 !border-black"
+        className="!w-2 !h-2 !bg-[var(--accent-orange)] !border-2 !border-[var(--bg-primary)]"
       />
 
       {/* Task content */}
@@ -60,8 +60,8 @@ export const TaskNode = memo(({ data }: NodeProps) => {
             <div
               className={`flex-shrink-0 w-4 h-4 border-2 ${
                 task.checked
-                  ? 'border-[#FF4D00] bg-[#FF4D00]'
-                  : 'border-[#E6E6E6] bg-transparent'
+                  ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]'
+                  : 'border-[var(--text-primary)] bg-transparent'
               } flex items-center justify-center cursor-pointer`}
             >
               {task.checked && (
@@ -74,7 +74,7 @@ export const TaskNode = memo(({ data }: NodeProps) => {
                 >
                   <path
                     d="M1 5L4 8L9 2"
-                    stroke="black"
+                    stroke="var(--bg-primary)"
                     strokeWidth="2"
                     strokeLinecap="square"
                   />
@@ -83,7 +83,7 @@ export const TaskNode = memo(({ data }: NodeProps) => {
             </div>
             <span
               className={`text-xs font-mono leading-tight ${
-                task.checked ? 'line-through text-[#666666]' : 'text-[#E6E6E6]'
+                task.checked ? 'line-through text-[var(--text-dim)]' : 'text-[var(--text-primary)]'
               }`}
             >
               {task.text}
@@ -103,12 +103,12 @@ export const TaskNode = memo(({ data }: NodeProps) => {
         {/* Metadata badges */}
         <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
           {task.metadata?.deadline && (
-            <span className="px-1.5 py-0.5 border border-[#888888] text-[#888888]">
+            <span className="px-1.5 py-0.5 border border-[var(--text-secondary)] text-[var(--text-secondary)]">
               DUE: {task.metadata.deadline}
             </span>
           )}
           {task.metadata?.effort_estimate && (
-            <span className="px-1.5 py-0.5 border border-[#666666] text-[#666666]">
+            <span className="px-1.5 py-0.5 border border-[var(--text-dim)] text-[var(--text-dim)]">
               EST: {task.metadata.effort_estimate}
             </span>
           )}
@@ -117,13 +117,13 @@ export const TaskNode = memo(({ data }: NodeProps) => {
               {task.metadata.tags.slice(0, 2).map((tag: string, index: number) => (
                 <span
                   key={index}
-                  className="px-1.5 py-0.5 border border-[#555555] text-[#777777] uppercase"
+                  className="px-1.5 py-0.5 border border-[var(--border-subtle)] text-[var(--text-subtle)] uppercase"
                 >
                   {tag}
                 </span>
               ))}
               {task.metadata.tags.length > 2 && (
-                <span className="px-1.5 py-0.5 text-[#555555]">
+                <span className="px-1.5 py-0.5 text-[var(--border-subtle)]">
                   +{task.metadata.tags.length - 2}
                 </span>
               )}
@@ -133,28 +133,28 @@ export const TaskNode = memo(({ data }: NodeProps) => {
 
         {/* Dependency indicators */}
         {task.metadata?.depends_on && task.metadata.depends_on.length > 0 && (
-          <div className="text-[10px] text-[#FF4D00] font-mono uppercase border-l-2 border-[#FF4D00] pl-2">
+          <div className="text-[10px] text-[var(--accent-orange)] font-mono uppercase border-l-2 border-[var(--accent-orange)] pl-2">
             DEPENDS ON {task.metadata.depends_on.length}
           </div>
         )}
         {task.metadata?.blocked_by && task.metadata.blocked_by.length > 0 && (
-          <div className="text-[10px] text-[#FF4D00] font-mono uppercase border-l-2 border-[#FF4D00] pl-2 animate-pulse">
+          <div className="text-[10px] text-[var(--accent-orange)] font-mono uppercase border-l-2 border-[var(--accent-orange)] pl-2 animate-pulse">
             BLOCKED BY {task.metadata.blocked_by.length}
           </div>
         )}
         {task.metadata?.related_to && task.metadata.related_to.length > 0 && (
-          <div className="text-[10px] text-[#666666] font-mono uppercase border-l-2 border-[#666666] pl-2">
+          <div className="text-[10px] text-[var(--text-dim)] font-mono uppercase border-l-2 border-[var(--text-dim)] pl-2">
             RELATED TO {task.metadata.related_to.length}
           </div>
         )}
 
         {/* Notes preview (first line only) */}
         {task.metadata?.notes && task.metadata.notes.length > 0 && (
-          <div className="text-[10px] text-[#777777] font-mono italic border-t border-[#333333] pt-2">
+          <div className="text-[10px] text-[var(--text-subtle)] font-mono italic border-t border-[var(--border-faint)] pt-2">
             {task.metadata.notes[0].substring(0, 60)}
             {task.metadata.notes[0].length > 60 ? '...' : ''}
             {task.metadata.notes.length > 1 && (
-              <span className="text-[#555555] ml-1">[+{task.metadata.notes.length - 1}]</span>
+              <span className="text-[var(--border-subtle)] ml-1">[+{task.metadata.notes.length - 1}]</span>
             )}
           </div>
         )}

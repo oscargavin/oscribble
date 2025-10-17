@@ -226,11 +226,11 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   const getPriorityColor = (priority: "high" | "medium" | "low") => {
     switch (priority) {
       case "high":
-        return "border-[#FF4D00] text-[#FF4D00]";
+        return "border-[var(--accent-orange)] text-[var(--accent-orange)]";
       case "medium":
-        return "border-[#888888] text-[#888888]";
+        return "border-[var(--text-secondary)] text-[var(--text-secondary)]";
       case "low":
-        return "border-[#666666] text-[#666666]";
+        return "border-[var(--text-dim)] text-[var(--text-dim)]";
     }
   };
 
@@ -243,28 +243,28 @@ export const TaskRow: React.FC<TaskRowProps> = ({
     // Don't apply selection borders when task is expanded with subtasks (border is on outer wrapper)
     if (!isSelected || (isExpanded && hasSubtasks)) return "";
 
-    const classes = ["bg-[#FF4D00]/10"];
+    const classes = ["bg-[var(--accent-orange)]/10"];
 
     // Single selected task gets full border
     if (isFirstSelected && isLastSelected) {
-      classes.push("border-2 border-[#FF4D00]");
+      classes.push("border-2 border-[var(--accent-orange)]");
     } else {
       // Left and right borders always present when selected
       classes.push(
-        "border-l-2 border-l-[#FF4D00]",
-        "border-r-2 border-r-[#FF4D00]"
+        "border-l-2 border-l-[var(--accent-orange)]",
+        "border-r-2 border-r-[var(--accent-orange)]"
       );
 
       // Top border only on first selected, otherwise transparent
       if (isFirstSelected) {
-        classes.push("border-t-2 border-t-[#FF4D00]");
+        classes.push("border-t-2 border-t-[var(--accent-orange)]");
       } else {
         classes.push("border-t-2 border-t-transparent");
       }
 
       // Bottom border only on last selected, otherwise transparent
       if (isLastSelected) {
-        classes.push("border-b-2 border-b-[#FF4D00]");
+        classes.push("border-b-2 border-b-[var(--accent-orange)]");
       } else {
         classes.push("border-b-2 border-b-transparent");
       }
@@ -275,7 +275,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
 
   return (
     <div
-      className={`${isExpanded && hasSubtasks && isFocused ? "border-2 border-[#FF4D00] bg-[#FF4D00]/5" : ""} ${isExpanded && hasSubtasks && !isFocused ? "border-b-2 border-b-[#111111]" : ""}`}
+      className={`${isExpanded && hasSubtasks && isFocused ? "border border-[var(--accent-orange)] bg-[var(--accent-orange)]/[0.015]" : ""} ${isExpanded && hasSubtasks && !isFocused ? "border-b-2 border-b-[var(--bg-surface)]" : ""}`}
     >
       <div
         data-task-id={task.id}
@@ -283,9 +283,9 @@ export const TaskRow: React.FC<TaskRowProps> = ({
           isExpanded && hasSubtasks
             ? "border-transparent"
             : !isSelected && !isFocused
-              ? "border-transparent border-b-2 border-b-[#111111]"
+              ? "border-transparent border-b-2 border-b-[var(--bg-surface)]"
               : ""
-        } hover:bg-[#0A0A0A] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused && !(isExpanded && hasSubtasks) ? "border-[#FF4D00] bg-[#FF4D00]/5" : ""} ${getSelectionBorderClasses()}`}
+        } hover:bg-[var(--bg-elevated)] transition-colors duration-150 relative group cursor-pointer ${getPriorityStyles()} ${isFocused && !(isExpanded && hasSubtasks) ? "!border border-[var(--accent-orange)] bg-[var(--accent-orange)]/[0.015]" : ""} ${getSelectionBorderClasses()}`}
         style={{
           marginLeft: `${(task.indent + depth) * 20}px`,
           minHeight: isRawTask ? "96px" : undefined, // Extra height for raw tasks to fit buttons below badges
@@ -325,13 +325,13 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             autoFocus
-            className="flex-1 bg-[#0A0A0A] text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-sm font-mono"
+            className="flex-1 bg-[var(--bg-elevated)] text-[var(--text-primary)] px-2 py-1 border border-[var(--accent-orange)] outline-none text-sm font-mono"
           />
         ) : isEditingMetadata ? (
           <div className="flex-1 space-y-2 py-1">
             {task.metadata?.priority && (
               <div className="flex items-center gap-2">
-                <label className="text-[#E6E6E6] text-xs font-mono w-16">
+                <label className="text-[var(--text-primary)] text-xs font-mono w-16">
                   PRIORITY:
                 </label>
                 <div className="flex gap-2">
@@ -344,11 +344,11 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                       className={`px-2 py-1 text-xs font-mono uppercase border ${
                         metadataForm.priority === priority
                           ? priority === "high"
-                            ? "border-[#FF4D00] text-[#FF4D00] bg-[#FF4D00]/20"
+                            ? "border-[var(--accent-orange)] text-[var(--accent-orange)] bg-[var(--accent-orange)]/20"
                             : priority === "medium"
-                              ? "border-[#888888] text-[#888888] bg-[#888888]/20"
-                              : "border-[#666666] text-[#666666] bg-[#666666]/20"
-                          : "border-[#444444] text-[#888888] hover:border-[#666666]"
+                              ? "border-[var(--text-secondary)] text-[var(--text-secondary)] bg-[var(--text-secondary)]/20"
+                              : "border-[var(--text-dim)] text-[var(--text-dim)] bg-[var(--text-dim)]/20"
+                          : "border-[var(--border-accent)] text-[var(--text-secondary)] hover:border-[var(--text-dim)]"
                       }`}
                     >
                       {priority}
@@ -357,14 +357,14 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 </div>
                 {task.metadata.original_priority &&
                   task.metadata.original_priority !== metadataForm.priority && (
-                    <span className="text-[#666666] text-[10px] font-mono ml-auto">
+                    <span className="text-[var(--text-dim)] text-[10px] font-mono ml-auto">
                       Claude: {task.metadata.original_priority}
                     </span>
                   )}
               </div>
             )}
             <div className="flex items-center gap-2">
-              <label className="text-[#E6E6E6] text-xs font-mono w-16">
+              <label className="text-[var(--text-primary)] text-xs font-mono w-16">
                 DUE:
               </label>
               <input
@@ -375,12 +375,12 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 }
                 onKeyDown={handleMetadataKeyDown}
                 placeholder="e.g., 2024-12-31, next week"
-                className="flex-1 bg-transparent text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-xs font-mono"
+                className="flex-1 bg-transparent text-[var(--text-primary)] px-2 py-1 border border-[var(--accent-orange)] outline-none text-xs font-mono"
                 autoFocus
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-[#E6E6E6] text-xs font-mono w-16">
+              <label className="text-[var(--text-primary)] text-xs font-mono w-16">
                 EST:
               </label>
               <input
@@ -394,11 +394,11 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 }
                 onKeyDown={handleMetadataKeyDown}
                 placeholder="e.g., 2h, 1d, 30min"
-                className="flex-1 bg-transparent text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-xs font-mono"
+                className="flex-1 bg-transparent text-[var(--text-primary)] px-2 py-1 border border-[var(--accent-orange)] outline-none text-xs font-mono"
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-[#E6E6E6] text-xs font-mono w-16">
+              <label className="text-[var(--text-primary)] text-xs font-mono w-16">
                 TAGS:
               </label>
               <input
@@ -409,19 +409,19 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 }
                 onKeyDown={handleMetadataKeyDown}
                 placeholder="e.g., urgent, backend, bug"
-                className="flex-1 bg-transparent text-[#E6E6E6] px-2 py-1 border border-[#FF4D00] outline-none text-xs font-mono"
+                className="flex-1 bg-transparent text-[var(--text-primary)] px-2 py-1 border border-[var(--accent-orange)] outline-none text-xs font-mono"
               />
             </div>
             <div className="flex gap-2 text-xs font-mono">
               <button
                 onClick={handleMetadataSave}
-                className="px-2 py-1 border border-[#E6E6E6] text-[#E6E6E6] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors uppercase"
+                className="px-2 py-1 border border-[var(--text-primary)] text-[var(--text-primary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors uppercase"
               >
                 [ENTER] SAVE
               </button>
               <button
                 onClick={handleMetadataCancel}
-                className="px-2 py-1 border border-[#666666] text-[#666666] hover:border-[#E6E6E6] hover:text-[#E6E6E6] transition-colors uppercase"
+                className="px-2 py-1 border border-[var(--text-dim)] text-[var(--text-dim)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors uppercase"
               >
                 [ESC] CANCEL
               </button>
@@ -439,32 +439,32 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                     e.stopPropagation();
                     onToggleExpand(task.id);
                   }}
-                  className="text-[#FF4D00] flex-shrink-0 hover:text-[#E6E6E6] transition-colors leading-none mt-[2px]"
+                  className="text-[var(--accent-orange)] flex-shrink-0 hover:text-[var(--text-primary)] transition-colors leading-none mt-[2px]"
                   title={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
                 >
                   {isExpanded ? "▾" : "▸"}
                 </button>
               ) : (
-                <span className="text-[#FF4D00] flex-shrink-0 leading-none mt-[2px]">
+                <span className="text-[var(--accent-orange)] flex-shrink-0 leading-none mt-[2px]">
                   ▸
                 </span>
               )}
               <span
-                className={`text-sm font-mono ${task.checked ? "line-through text-[#666666]" : "text-[#E6E6E6]"}`}
+                className={`text-sm font-mono ${task.checked ? "line-through text-[var(--text-dim)]" : "text-[var(--text-primary)]"}`}
               >
                 {task.text}
               </span>
               {hasSubtasks && (
-                <span className="text-xs text-[#666666] font-mono">
+                <span className="text-xs text-[var(--text-dim)] font-mono">
                   [{task.subtasks!.length}]
                 </span>
               )}
             </div>
             {task.metadata?.notes && task.metadata.notes.length > 0 && (
-              <div className="text-xs text-[#888888] mt-1 font-mono pl-4 relative">
+              <div className="text-xs text-[var(--text-secondary)] mt-1 font-mono pl-4 relative">
                 {/* Vertical trunk line for all notes except after the last one */}
                 <div
-                  className="absolute left-[1.2rem] top-0 bottom-0 w-[1px] bg-[#333333]"
+                  className="absolute left-[1.2rem] top-0 bottom-0 w-[1px] bg-[var(--border-subtle)]"
                   style={{ height: "calc(100% - 1em)" }}
                 />
 
@@ -477,7 +477,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                       className="flex items-start relative"
                       style={{ lineHeight: "1.2" }}
                     >
-                      <span className="text-[#333333] mr-1 flex-shrink-0 z-10 bg-[var(--bg-primary)]">
+                      <span className="text-[var(--border-subtle)] mr-1 flex-shrink-0 z-10 bg-[var(--bg-primary)]">
                         {branch}
                       </span>
                       <span className="flex-1">
@@ -493,14 +493,14 @@ export const TaskRow: React.FC<TaskRowProps> = ({
               task.metadata.notes.some((note) =>
                 note.startsWith("Context:")
               ) && (
-                <div className="mt-1 text-xs text-[#666666] pl-4 font-mono border-l border-[#444444]">
-                  <div className="font-bold text-[#888888] uppercase tracking-wider mb-1">
+                <div className="mt-1 text-xs text-[var(--text-dim)] pl-4 font-mono border-l border-[var(--border-accent)]">
+                  <div className="font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
                     [CONTEXT]
                   </div>
                   {task.metadata.notes
                     .filter((note) => note.startsWith("Context:"))
                     .map((note, i) => (
-                      <div key={i} className="ml-2 text-[#666666]">
+                      <div key={i} className="ml-2 text-[var(--text-dim)]">
                         • {note.replace("Context: ", "")}
                       </div>
                     ))}
@@ -508,19 +508,19 @@ export const TaskRow: React.FC<TaskRowProps> = ({
               )}
             {task.metadata?.blocked_by &&
               task.metadata.blocked_by.length > 0 && (
-                <div className="text-xs text-[#FF4D00] mt-1 font-mono pl-4 border-l border-[#FF4D00]">
+                <div className="text-xs text-[var(--accent-orange)] mt-1 font-mono pl-4 border-l border-[var(--accent-orange)]">
                   [BLOCKED] {task.metadata.blocked_by.join(", ")}
                 </div>
               )}
             {task.metadata?.depends_on &&
               task.metadata.depends_on.length > 0 && (
-                <div className="text-xs text-[#888888] mt-1 font-mono pl-4 border-l border-[#888888]">
+                <div className="text-xs text-[var(--text-secondary)] mt-1 font-mono pl-4 border-l border-[var(--text-secondary)]">
                   [DEPENDS] {task.metadata.depends_on.join(", ")}
                 </div>
               )}
             {task.metadata?.related_to &&
               task.metadata.related_to.length > 0 && (
-                <div className="text-xs text-[#666666] mt-1 font-mono pl-4 border-l border-[#666666]">
+                <div className="text-xs text-[var(--text-dim)] mt-1 font-mono pl-4 border-l border-[var(--text-dim)]">
                   [RELATED] {task.metadata.related_to.join(", ")}
                 </div>
               )}
@@ -529,7 +529,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                 {task.metadata.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="text-xs px-2 py-0.5 border border-[#333333] text-[#666666] font-mono uppercase"
+                    className="text-xs px-2 py-0.5 border border-[var(--border-subtle)] text-[var(--text-dim)] font-mono uppercase"
                   >
                     {tag}
                   </span>
@@ -555,12 +555,12 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                   </button>
                 )}
                 {task.metadata?.deadline && (
-                  <span className="text-xs px-2 py-0.5 border border-[#444444] text-[#888888] font-mono uppercase tracking-wider">
+                  <span className="text-xs px-2 py-0.5 border border-[var(--border-accent)] text-[var(--text-secondary)] font-mono uppercase tracking-wider">
                     DUE: {task.metadata.deadline}
                   </span>
                 )}
                 {task.metadata?.effort_estimate && (
-                  <span className="text-xs px-2 py-0.5 border border-[#333333] text-[#666666] font-mono uppercase tracking-wider">
+                  <span className="text-xs px-2 py-0.5 border border-[var(--border-subtle)] text-[var(--text-dim)] font-mono uppercase tracking-wider">
                     EST: {task.metadata.effort_estimate}
                   </span>
                 )}
@@ -570,7 +570,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                       task.metadata.attempts.length === 1
                         ? "border-[#FFAA00] text-[#FFAA00]"  // Yellow for 1 attempt
                         : task.metadata.attempts.length === 2
-                        ? "border-[#FF4D00] text-[#FF4D00]"  // Orange for 2 attempts
+                        ? "border-[var(--accent-orange)] text-[var(--accent-orange)]"  // Orange for 2 attempts
                         : "border-[#FF0000] text-[#FF0000]"  // Red for 3+ attempts
                     }`}
                     title={`${task.metadata.attempts.length} failed attempt${task.metadata.attempts.length > 1 ? 's' : ''} (view details with oscribble_get_task_details)`}
@@ -598,15 +598,15 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             {showContextFiles.has(task.id) &&
               task.metadata?.context_files &&
               task.metadata.context_files.length > 0 && (
-                <div className="mt-1 text-xs text-[#666666] pl-4 font-mono border-l border-[#444444]">
-                  <div className="font-bold text-[#888888] uppercase tracking-wider mb-1">
+                <div className="mt-1 text-xs text-[var(--text-dim)] pl-4 font-mono border-l border-[var(--border-accent)]">
+                  <div className="font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
                     [CONTEXT FILES]
                   </div>
                   {task.metadata.context_files.map((file, i) => (
-                    <div key={i} className="ml-2 text-[#666666]">
+                    <div key={i} className="ml-2 text-[var(--text-dim)]">
                       • {file.path}
                       {file.wasGrepped && file.matchedKeywords && (
-                        <span className="text-[#555555]">
+                        <span className="text-[var(--text-muted)]">
                           {" "}
                           (grep: {file.matchedKeywords.join(", ")})
                         </span>
@@ -621,10 +621,10 @@ export const TaskRow: React.FC<TaskRowProps> = ({
         {/* Badges for raw tasks - placed inline */}
         {isRawTask && (
           <>
-            <span className="text-xs px-2 py-1 border border-[#555555] bg-transparent text-[#888888] font-mono uppercase tracking-wider ml-auto">
+            <span className="text-xs px-2 py-1 border border-[var(--text-muted)] bg-transparent text-[var(--text-secondary)] font-mono uppercase tracking-wider ml-auto">
               FEATURE
             </span>
-            <span className="text-xs px-2 py-1 border border-[#FF4D00] bg-transparent text-[#FF4D00] font-mono uppercase tracking-wider">
+            <span className="text-xs px-2 py-1 border border-[var(--accent-orange)] bg-transparent text-[var(--accent-orange)] font-mono uppercase tracking-wider">
               [RAW]
             </span>
           </>
@@ -638,10 +638,10 @@ export const TaskRow: React.FC<TaskRowProps> = ({
               <button
                 onClick={() => onFormat(task.id, true)}
                 disabled={isFormattingTaskId === task.id}
-                className={`transition-colors duration-150 p-1 border bg-[#000000] ${
+                className={`transition-colors duration-150 p-1 border bg-[var(--bg-base)] ${
                   isFormattingTaskId === task.id
-                    ? "text-[#888888] border-[#888888] cursor-not-allowed"
-                    : "text-[#FF4D00] hover:text-[#E6E6E6] border-[#FF4D00] hover:border-[#E6E6E6]"
+                    ? "text-[var(--text-secondary)] border-[var(--text-secondary)] cursor-not-allowed"
+                    : "text-[var(--accent-orange)] hover:text-[var(--text-primary)] border-[var(--accent-orange)] hover:border-[var(--text-primary)]"
                 }`}
                 title={
                   isFormattingTaskId === task.id
@@ -683,7 +683,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             )}
             <button
               onClick={handleMetadataEdit}
-              className="text-[#E6E6E6] hover:text-[#FF4D00] transition-colors duration-150 p-1 border border-[#E6E6E6] hover:border-[#FF4D00] bg-[#000000]"
+              className="text-[var(--text-primary)] hover:text-[var(--accent-orange)] transition-colors duration-150 p-1 border border-[var(--text-primary)] hover:border-[var(--accent-orange)] bg-[var(--bg-base)]"
               title="Edit metadata (M)"
             >
               <svg
@@ -703,7 +703,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             </button>
             <button
               onClick={handleCopy}
-              className="text-[#E6E6E6] hover:text-[#FF4D00] transition-colors duration-150 p-1 border border-[#E6E6E6] hover:border-[#FF4D00] bg-[#000000]"
+              className="text-[var(--text-primary)] hover:text-[var(--accent-orange)] transition-colors duration-150 p-1 border border-[var(--text-primary)] hover:border-[var(--accent-orange)] bg-[var(--bg-base)]"
               title={isCopied ? "Copied!" : "Copy task to clipboard"}
             >
               {isCopied ? (
@@ -717,7 +717,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-[#FF4D00]"
+                  className="text-[var(--accent-orange)]"
                 >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -740,7 +740,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
             </button>
             <button
               onClick={() => onDelete(task.id)}
-              className="text-[#E6E6E6] hover:text-[#FF4D00] transition-colors duration-150 p-1 border border-[#E6E6E6] hover:border-[#FF4D00] bg-[#000000]"
+              className="text-[var(--text-primary)] hover:text-[var(--accent-orange)] transition-colors duration-150 p-1 border border-[var(--text-primary)] hover:border-[var(--accent-orange)] bg-[var(--bg-base)]"
               title="Delete task"
             >
               <svg

@@ -1,4 +1,4 @@
-# oscribble
+# OSCR
 
 raw notes → structured tasks.
 brutalist task manager. claude ai.
@@ -41,7 +41,7 @@ download `.dmg` from [releases](https://github.com/oscargavin/oscribble/releases
 
 **macos security note:** unsigned app requires terminal command after install:
 ```bash
-sudo xattr -cr /Applications/Oscribble.app
+sudo xattr -cr /Applications/OSCR.app
 ```
 then launch normally. enter [anthropic api key](https://console.anthropic.com/) on first run.
 
@@ -93,7 +93,7 @@ Delete      remove task (single/batch)
 ## how it works
 
 ### intelligent context loading
-when you format tasks with `CMD+Enter`, oscribble automatically:
+when you format tasks with `CMD+Enter`, OSCR automatically:
 1. scans your task text for `@filepath` mentions
 2. discovers relevant files from your project (if no mentions)
 3. caches file content (7-day expiry)
@@ -185,7 +185,7 @@ electron + react + claude sonnet 4.5
 
 ## contributing
 
-contributions welcome! oscribble is open source and we'd love your help.
+contributions welcome! OSCR is open source and we'd love your help.
 
 **ways to contribute:**
 - report bugs via [issues](https://github.com/oscargavin/oscribble/issues)
@@ -211,7 +211,7 @@ questions? open an issue or start a discussion.
 
 ## mcp integration
 
-use oscribble from claude code. control tasks via natural language.
+use OSCR from claude code. control tasks via natural language.
 
 add to `~/.claude/claude_desktop_config.json`:
 ```json

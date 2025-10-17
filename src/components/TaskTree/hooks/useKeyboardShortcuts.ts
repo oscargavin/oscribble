@@ -216,30 +216,6 @@ export const useKeyboardShortcuts = ({
             }
 
             setFocusedTaskId(nextTaskId);
-
-            // Auto-expand and focus first incomplete subtask if the next task has subtasks
-            // (Only for code projects - life_admin projects should expand manually)
-            const nextTask = displayTasks[nextIndex];
-            if (
-              shouldShowFileTree &&
-              nextTask.subtasks &&
-              nextTask.subtasks.length > 0
-            ) {
-              if (!expandedTasks.has(nextTaskId)) {
-                handleToggleExpand(nextTaskId);
-              }
-              // Focus first incomplete subtask (or first subtask if all complete)
-              const firstIncompleteSubtask = nextTask.subtasks.find(
-                (st) => !st.checked
-              );
-              const targetSubtask =
-                firstIncompleteSubtask || nextTask.subtasks[0];
-              setFocusedSubtaskMap((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(nextTaskId, targetSubtask.id);
-                return newMap;
-              });
-            }
           }
           navigationScheduledRef.current = null;
         });
@@ -293,30 +269,6 @@ export const useKeyboardShortcuts = ({
             }
 
             setFocusedTaskId(prevTaskId);
-
-            // Auto-expand and focus first incomplete subtask if the previous task has subtasks
-            // (Only for code projects - life_admin projects should expand manually)
-            const prevTask = displayTasks[prevIndex];
-            if (
-              shouldShowFileTree &&
-              prevTask.subtasks &&
-              prevTask.subtasks.length > 0
-            ) {
-              if (!expandedTasks.has(prevTaskId)) {
-                handleToggleExpand(prevTaskId);
-              }
-              // Focus first incomplete subtask (or first subtask if all complete)
-              const firstIncompleteSubtask = prevTask.subtasks.find(
-                (st) => !st.checked
-              );
-              const targetSubtask =
-                firstIncompleteSubtask || prevTask.subtasks[0];
-              setFocusedSubtaskMap((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(prevTaskId, targetSubtask.id);
-                return newMap;
-              });
-            }
           }
           navigationScheduledRef.current = null;
         });

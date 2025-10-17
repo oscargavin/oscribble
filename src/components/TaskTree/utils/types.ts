@@ -17,6 +17,7 @@ export interface TaskTreeProps {
   setShowContextFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
   hasVoice?: boolean;
   shouldShowFileTree?: boolean;
+  reduceMotion?: boolean;
 }
 
 export interface TaskRowProps {

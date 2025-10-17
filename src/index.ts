@@ -117,9 +117,9 @@ const createWindow = (projectName?: string): void => {
     // Pass project as query parameter
     url += `?project=${encodeURIComponent(projectName)}`;
     // Set window title to project name
-    mainWindow.setTitle(`Oscribble - ${projectName}`);
+    mainWindow.setTitle(`OSCR - ${projectName}`);
   } else {
-    mainWindow.setTitle('Oscribble');
+    mainWindow.setTitle('OSCR');
   }
 
   // Load the app with optional project context

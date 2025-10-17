@@ -82,6 +82,9 @@ export interface AppSettings {
   suggest_solutions?: boolean; // Include solution suggestions and implementation approaches (default: true)
   auto_detect_missing_tasks?: boolean; // Suggest additional tasks based on context (default: true)
   enable_web_search?: boolean; // Enable web search for life admin projects (default: true)
+  // Appearance preferences
+  theme?: 'dark' | 'light'; // UI theme (default: dark)
+  accent_color?: string; // Accent color (default: #FF4D00)
 }
 
 export interface ClaudeFormatResponse {

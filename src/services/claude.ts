@@ -40,8 +40,8 @@ Output JSON with STRUCTURED ARRAYS (not comma-separated strings):
       "depends_on": ["existing-task-title", 0],      // Task dependencies (by title or index)
       "related_to": ["another-task-title", 1],       // Related tasks (by title or index)
       "needs": ["requirement1", "requirement2"],     // Array of strings
-      "deadline": "2025-01-15" | "next week",        // Optional: ISO or human
-      "effort_estimate": "2h" | "1d" | "3 days",     // Optional: time estimate
+      "deadline": "2025-01-15" | "next week",        // Optional: ISO or human (max 3 words)
+      "effort_estimate": "2h" | "1d" | "3 days",     // Optional: time estimate (max 3 words)
       "tags": ["frontend", "api", "urgent"],         // Optional: category tags
       "subtasks": [/* nested ClaudeTask objects */]  // Optional: subtasks
     }]
@@ -72,8 +72,8 @@ IMPORTANT JSON FORMATTING:
   - Use \\\\ for backslashes
   - Ensure all strings are properly escaped JSON
   - Example: "Visit \\"Official Site\\" at https://example.com"
-- Extract deadlines from phrases like "by Friday", "due 1/15", "deadline: tomorrow"
-- Extract estimates from phrases like "should take 2 hours", "~3 days", "quick fix"
+- Extract deadlines from phrases like "by Friday", "due 1/15", "deadline: tomorrow" (LIMIT TO 3 WORDS MAX)
+- Extract estimates from phrases like "should take 2 hours", "~3 days", "quick fix" (LIMIT TO 3 WORDS MAX)
 - Extract tags from context (e.g., "UI work" → ["ui"], "fix bug in API" → ["bug", "api"])
 - Only include optional fields if information exists
 - DO NOT include any text outside the JSON
@@ -173,14 +173,14 @@ Output JSON with STRUCTURED ARRAYS:
       "depends_on": [],  // Not used for life admin (sequential only)
       "related_to": [],  // Can reference other tasks
       "needs": ["requirement1"],
-      "deadline": "2025-01-15" | "next week",
-      "effort_estimate": "30m" | "2h" | "1d",
+      "deadline": "2025-01-15" | "next week",        // Max 3 words
+      "effort_estimate": "30m" | "2h" | "1d",        // Max 3 words
       "tags": ["urgent", "phone-call"],
       "subtasks": [{
         "text": "Step 1: Concrete action",
         "notes": ["Why this matters"],
-        "deadline": "before main task",
-        "effort_estimate": "15m"
+        "deadline": "before main task",           // Max 3 words
+        "effort_estimate": "15m"                  // Max 3 words
       }]
     }]
   }],
@@ -212,7 +212,8 @@ Example of CORRECT formatting:
 - Each subtask is ONE action that can be checked off
 - Don't reference files or code - focus on real-world actions
 - When using web search, include specific URLs, costs, and requirements in notes
-- Suggest specific deadlines when you know them (tax day, DMV renewal periods, etc.)
+- Suggest specific deadlines when you know them (tax day, DMV renewal periods, etc.) - LIMIT TO 3 WORDS MAX
+- Keep effort estimates concise - LIMIT TO 3 WORDS MAX (e.g., "2h", "30m", "1 day")
 - **OUTPUT MUST BE VALID, PARSEABLE JSON** - double-check syntax before returning`;
 
 export class ClaudeService {

@@ -33,7 +33,7 @@ export function parseCitations(
         <React.Fragment key={`cite-${startIndex}`}>
           {citedText}
           <sup
-            className="text-[#FF4D00] ml-0.5 cursor-pointer hover:underline"
+            className="text-[var(--accent-orange)] ml-0.5 cursor-pointer hover:underline"
             title="Source"
             onClick={(e) => {
               e.stopPropagation();
@@ -50,7 +50,7 @@ export function parseCitations(
       parts.push(
         <React.Fragment key={`cite-${startIndex}`}>
           {citedText}
-          <sup className="text-[#FF4D00] ml-0.5 cursor-help" title="Source">
+          <sup className="text-[var(--accent-orange)] ml-0.5 cursor-help" title="Source">
             [{index}]
           </sup>
         </React.Fragment>

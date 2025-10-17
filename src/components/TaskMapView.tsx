@@ -132,10 +132,10 @@ export const TaskMapView: React.FC<TaskMapViewProps> = ({
             target: task.id,
             type: 'step',
             animated: false,
-            style: { stroke: '#E6E6E6', strokeWidth: 2 },
+            style: { stroke: 'var(--text-primary)', strokeWidth: 2 },
             label: 'depends',
             labelStyle: {
-              fill: '#888888',
+              fill: 'var(--text-secondary)',
               fontSize: 10,
               fontFamily: 'monospace',
             },
@@ -152,10 +152,10 @@ export const TaskMapView: React.FC<TaskMapViewProps> = ({
             target: task.id,
             type: 'step',
             animated: true,
-            style: { stroke: '#E6E6E6', strokeWidth: 2, strokeDasharray: '5,5' },
+            style: { stroke: 'var(--text-primary)', strokeWidth: 2, strokeDasharray: '5,5' },
             label: 'blocks',
             labelStyle: {
-              fill: '#E6E6E6',
+              fill: 'var(--text-primary)',
               fontSize: 10,
               fontFamily: 'monospace',
             },
@@ -177,10 +177,10 @@ export const TaskMapView: React.FC<TaskMapViewProps> = ({
               target: relatedId,
               type: 'step',
               animated: false,
-              style: { stroke: '#E6E6E6', strokeWidth: 1, strokeDasharray: '3,3' },
+              style: { stroke: 'var(--text-primary)', strokeWidth: 1, strokeDasharray: '3,3' },
               label: 'related',
               labelStyle: {
-                fill: '#888888',
+                fill: 'var(--text-secondary)',
                 fontSize: 10,
                 fontFamily: 'monospace',
               },
@@ -220,7 +220,7 @@ export const TaskMapView: React.FC<TaskMapViewProps> = ({
 
   if (tasks.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-[#666666] text-sm font-mono uppercase tracking-wider">
+      <div className="flex items-center justify-center h-full text-[var(--text-dim)] text-sm font-mono uppercase tracking-wider">
         [NO TASKS] USE FORMAT TO GENERATE
       </div>
     );
@@ -242,19 +242,19 @@ export const TaskMapView: React.FC<TaskMapViewProps> = ({
         }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#222222" gap={20} size={1} />
-        <Controls className="bg-black border border-[#444444]" />
-        <Panel position="top-right" className="bg-black border border-[#444444] p-2">
+        <Background color="var(--border-primary)" gap={20} size={1} />
+        <Controls className="bg-[var(--bg-primary)] border border-[var(--border-accent)]" />
+        <Panel position="top-right" className="bg-[var(--bg-primary)] border border-[var(--border-accent)] p-2">
           <div className="flex gap-2">
             <button
               onClick={() => onLayout('TB')}
-              className="px-3 py-1.5 text-xs font-mono border border-[#E6E6E6] text-[#E6E6E6] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors uppercase"
+              className="px-3 py-1.5 text-xs font-mono border border-[var(--text-primary)] text-[var(--text-primary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors uppercase"
             >
               VERTICAL
             </button>
             <button
               onClick={() => onLayout('LR')}
-              className="px-3 py-1.5 text-xs font-mono border border-[#E6E6E6] text-[#E6E6E6] hover:border-[#FF4D00] hover:text-[#FF4D00] transition-colors uppercase"
+              className="px-3 py-1.5 text-xs font-mono border border-[var(--text-primary)] text-[var(--text-primary)] hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] transition-colors uppercase"
             >
               HORIZONTAL
             </button>

@@ -3,12 +3,35 @@
 @source "../src/**/*.{ts,tsx,html}";
 
 :root {
-  /* Brutalist Tech Palette */
+  /* Brutalist Tech Palette - Dark Theme */
   --bg-primary: #000000;
   --bg-surface: #111111;
+  --bg-elevated: #0A0A0A;
+  --bg-hover: #0A0A0A;
+  --bg-disabled: #333333;
+
   --text-primary: #E6E6E6;
+  --text-secondary: #888888;
+  --text-tertiary: #777777;
   --text-dim: #666666;
+  --text-muted: #555555;
+  --text-inverse: #000000;
+
+  --border-primary: #222222;
+  --border-accent: #444444;
+  --border-subtle: #333333;
+  --border-muted: #555555;
+  --border-dimmed: #666666;
+
   --accent-orange: #FF4D00;
+  --accent-orange-hover: rgba(255, 77, 0, 0.8);
+  --accent-orange-bg: rgba(255, 77, 0, 0.1);
+  --accent-orange-border: rgba(255, 77, 0, 0.5);
+  --accent-light: #FF8C4D; /* Lighter variant for model indicators */
+  --accent-medium: #FF6D27; /* Medium variant for model indicators */
+  --scrollbar-thumb: rgba(255, 77, 0, 0.6); /* Scrollbar colors */
+  --scrollbar-thumb-hover: rgba(255, 77, 0, 0.8);
+  --scrollbar-thumb-active: rgba(255, 77, 0, 1);
 
   /* Section Colors - Minimal Brutalist Approach */
   --critical-bg: rgba(255, 77, 0, 0.08);
@@ -25,6 +48,49 @@
   --line-height-tight: 1.4;
   --line-height-base: 1.5;
   --letter-spacing-tight: -0.02em;
+}
+
+.light-theme {
+  /* Brutalist Light Theme - Inverted Colors */
+  --bg-primary: #FFFFFF;
+  --bg-surface: #F5F5F5;
+  --bg-elevated: #FAFAFA;
+  --bg-hover: #FAFAFA;
+  --bg-disabled: #E0E0E0;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-tertiary: #888888;
+  --text-dim: #999999;
+  --text-muted: #AAAAAA;
+  --text-inverse: #FFFFFF;
+
+  --border-primary: #E0E0E0;
+  --border-accent: #CCCCCC;
+  --border-subtle: #D0D0D0;
+  --border-muted: #AAAAAA;
+  --border-dimmed: #999999;
+
+  /* Keep orange accent the same */
+  --accent-orange: #FF4D00;
+  --accent-orange-hover: rgba(255, 77, 0, 0.8);
+  --accent-orange-bg: rgba(255, 77, 0, 0.1);
+  --accent-orange-border: rgba(255, 77, 0, 0.5);
+  --accent-light: #FF8C4D; /* Lighter variant for model indicators */
+  --accent-medium: #FF6D27; /* Medium variant for model indicators */
+  --scrollbar-thumb: rgba(255, 77, 0, 0.6); /* Scrollbar colors */
+  --scrollbar-thumb-hover: rgba(255, 77, 0, 0.8);
+  --scrollbar-thumb-active: rgba(255, 77, 0, 1);
+
+  /* Section Colors - Adjusted for light theme */
+  --critical-bg: rgba(255, 77, 0, 0.08);
+  --critical-border: rgba(255, 77, 0, 0.6);
+
+  --perf-bg: rgba(26, 26, 26, 0.04);
+  --perf-border: rgba(26, 26, 26, 0.3);
+
+  --feature-bg: rgba(26, 26, 26, 0.04);
+  --feature-border: rgba(26, 26, 26, 0.25);
 }
 
 body {
@@ -54,7 +120,7 @@ button {
   background-color: var(--bg-primary);
   border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(255, 77, 0, 0.3);
+  box-shadow: 0 0 0 1px var(--accent-orange-border);
 }
 
 /* Draggable region styles */
@@ -88,10 +154,10 @@ button {
 /* Subtle pulse border - mechanical timing */
 @keyframes pulse-border {
   0%, 100% {
-    border-color: rgba(255, 77, 0, 0.3);
+    border-color: var(--accent-orange-border);
   }
   50% {
-    border-color: rgba(255, 77, 0, 0.7);
+    border-color: var(--accent-orange-hover);
   }
 }
 
@@ -248,8 +314,8 @@ button {
 }
 
 .raw-input-textarea::placeholder {
-  color: var(--text-dim);
-  opacity: 0.4;
+  color: var(--text-secondary);
+  opacity: 0.6;
   text-transform: lowercase;
   font-style: normal;
 }
@@ -298,8 +364,6 @@ button {
   background: transparent;  /* Invisible by default */
   border: none;
   border-radius: 0 !important;
-  -webkit-border-radius: 0 !important;
-  clip-path: inset(0 0 0 0);
   transition: background 0.15s linear;
 }
 
@@ -309,15 +373,18 @@ button {
 }
 
 *:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 77, 0, 0.35);
+  background: var(--scrollbar-thumb);
+  border-radius: 0 !important;
 }
 
 *:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 77, 0, 0.5);
+  background: var(--scrollbar-thumb-hover);
+  border-radius: 0 !important;
 }
 
 *:hover::-webkit-scrollbar-thumb:active {
-  background: rgba(255, 77, 0, 0.7);
+  background: var(--scrollbar-thumb-active);
+  border-radius: 0 !important;
 }
 
 /* Corner where vertical and horizontal scrollbars meet */
@@ -336,5 +403,102 @@ button {
 
 *:hover {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 77, 0, 0.35) transparent;  /* Transparent track */
+  scrollbar-color: var(--scrollbar-thumb) transparent;  /* Transparent track */
+}
+
+/* Keyboard shortcuts bar - ensure same thin scrollbar */
+.keyboard-shortcuts-bar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+  border-radius: 0 !important;
+}
+
+.keyboard-shortcuts-bar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 0 !important;
+}
+
+.keyboard-shortcuts-bar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: none;
+  border-radius: 0 !important;
+}
+
+.keyboard-shortcuts-bar:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 0 !important;
+}
+
+.keyboard-shortcuts-bar:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  border-radius: 0 !important;
+}
+
+.keyboard-shortcuts-bar:hover::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+  border-radius: 0 !important;
+}
+
+/* Hue Slider - Brutalist Style */
+.hue-slider {
+  border: 1px solid var(--text-dim);
+  outline: none;
+}
+
+.hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 32px;
+  background: var(--bg-primary);
+  border: 2px solid var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.hue-slider::-webkit-slider-thumb:hover {
+  border-color: var(--accent-orange);
+}
+
+.hue-slider::-moz-range-thumb {
+  width: 20px;
+  height: 32px;
+  background: var(--bg-primary);
+  border: 2px solid var(--text-primary);
+  border-radius: 0;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.hue-slider::-moz-range-thumb:hover {
+  border-color: var(--accent-orange);
+}
+
+/* ReactFlow Controls - Brutalist Override */
+.react-flow__controls {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-accent) !important;
+  border-radius: 0 !important;
+}
+
+.react-flow__controls-button {
+  background: var(--bg-primary) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+  border-radius: 0 !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.15s linear !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--bg-elevated) !important;
+  color: var(--accent-orange) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
 }

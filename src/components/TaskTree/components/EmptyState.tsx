@@ -31,16 +31,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     if (filterMode === "unchecked") {
       return (
         <>
-          <div className="text-[#666666]">
-            Press <span className="text-[#888888]">N</span> for new task
+          <div className="text-[var(--text-dim)]">
+            Press <span className="text-[var(--text-secondary)]">N</span> for new task
           </div>
-          <div className="text-[#666666]">
-            Press <span className="text-[#888888]">CMD+T</span> for raw text to
+          <div className="text-[var(--text-dim)]">
+            Press <span className="text-[var(--text-secondary)]">CMD+T</span> for raw text to
             format many tasks
           </div>
           {hasVoice && (
-            <div className="text-[#666666]">
-              Press <span className="text-[#888888]">CMD+R</span> for voice
+            <div className="text-[var(--text-dim)]">
+              Press <span className="text-[var(--text-secondary)]">CMD+R</span> for voice
               input
             </div>
           )}
@@ -48,16 +48,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       );
     }
     return (
-      <div className="text-[#444444]">
-        Press <span className="text-[#666666]">1-5</span> to change filter
+      <div className="text-[var(--border-accent)]">
+        Press <span className="text-[var(--text-dim)]">1-5</span> to change filter
       </div>
     );
   };
 
   return (
     <div className="w-full px-6 py-8">
-      <div className="relative border-l-4 border-l-[#333333] border border-[#222222] bg-[#0A0A0A] px-8 py-6">
-        <div className="text-[#666666] text-sm font-mono uppercase tracking-wider text-center font-bold">
+      <div className="relative border-l-4 border-l-[var(--border-subtle)] border border-[var(--border-primary)] bg-[var(--bg-elevated)] px-8 py-6">
+        <div className="text-[var(--text-dim)] text-sm font-mono uppercase tracking-wider text-center font-bold">
           {getEmptyMessage()}
         </div>
         <div className="text-xs font-mono tracking-wider text-center mt-3 space-y-1">

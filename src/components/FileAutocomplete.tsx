@@ -90,7 +90,7 @@ export const FileAutocomplete: React.FC<FileAutocompleteProps> = ({
   if (filteredFiles.length === 0) {
     return (
       <div
-        className="absolute bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 p-3 text-xs font-mono text-[#E6E6E6]/50"
+        className="absolute bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 p-3 text-xs font-mono text-[var(--text-primary)]/50"
       >
         $ no files found
       </div>
@@ -107,19 +107,19 @@ export const FileAutocomplete: React.FC<FileAutocompleteProps> = ({
           key={file}
           className={`px-3 py-2 cursor-pointer text-xs font-mono transition-all duration-150 border-l-2 ${
             index === selectedIndex
-              ? 'bg-[#FF4D00]/10 text-[#E6E6E6] border-[#FF4D00]'
-              : 'text-[#E6E6E6] hover:bg-[#111] border-transparent hover:border-[#FF4D00]/50'
+              ? 'bg-[var(--accent-orange)]/10 text-[var(--text-primary)] border-[var(--accent-orange)]'
+              : 'text-[var(--text-primary)] hover:bg-[var(--bg-surface)] border-transparent hover:border-[var(--accent-orange)]/50'
           }`}
           onClick={() => onSelect(file)}
           onMouseEnter={() => setSelectedIndex(index)}
         >
-          <span className={index === selectedIndex ? 'text-[#FF4D00]' : 'text-[#E6E6E6]/50'}>
+          <span className={index === selectedIndex ? 'text-[var(--accent-orange)]' : 'text-[var(--text-primary)]/50'}>
             $
           </span>{' '}
           {file}
         </div>
       ))}
-      <div className="px-3 py-1 text-[10px] text-[#E6E6E6]/50 border-t border-white/10 bg-black font-mono">
+      <div className="px-3 py-1 text-[10px] text-[var(--text-primary)]/50 border-t border-white/10 bg-black font-mono">
         ↑↓ navigate • ⏎ select • esc close
       </div>
     </div>
